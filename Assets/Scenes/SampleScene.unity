@@ -1938,7 +1938,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.7154791, y: 6.63, z: 0.74504936}
+  m_Size: {x: 0.7154791, y: 4.35, z: 0.74504936}
   m_Center: {x: 0, y: 1.0330466, z: 0}
 --- !u!1 &410087039
 GameObject:
@@ -2210,7 +2210,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   sensitivity: {x: 360, y: 360}
   maxVerticalAngle: 80
-  playerBody: {fileID: 2055617283}
 --- !u!1001 &428385723
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6453,7 +6452,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: d84e6833df1962145a5fed1c20a1b675, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 2.4
+      value: 1.91
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: d84e6833df1962145a5fed1c20a1b675, type: 3}
       propertyPath: m_LocalRotation.w

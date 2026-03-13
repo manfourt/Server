@@ -5,15 +5,14 @@ using UnityEngine;
 public class mouse : MonoBehaviour
 {
     float rotationX = 0f;
-    float rotationY = 0f;
 
     public Vector2 sensitivity = Vector2.one * 200f;
     public float maxVerticalAngle = 80f;
-    public Transform playerBody;
+    private Transform playerBody;
 
     void Start()
     {
-        
+        playerBody = GameObject.FindGameObjectWithTag("Player").transform;
     }
 
     void Update()

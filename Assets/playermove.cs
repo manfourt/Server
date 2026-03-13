@@ -9,7 +9,6 @@ public class playermove : MonoBehaviour
 
     void Start()
     {
-        Debug.Log("Скрипт работает! Объект: " + gameObject.name);
         // Получаем компонент Character Controller при старте
         controller = GetComponent<CharacterController>();
     }
