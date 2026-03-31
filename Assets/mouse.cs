@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class mouse : MonoBehaviour
@@ -14,12 +12,10 @@ public class mouse : MonoBehaviour
     private CameraViewManager cameraManager;
     private bool isSpecialViewActive = false;
 
-
     void Start()
     {
         playerBody = GameObject.FindGameObjectWithTag("Player").transform;
         cameraManager = FindObjectOfType<CameraViewManager>();
-
 
         // Блокируем курсор в центре экрана
         Cursor.lockState = CursorLockMode.Locked;
@@ -37,7 +33,6 @@ public class mouse : MonoBehaviour
 
         // Если активен режим просмотра (R/T), обычное управление мышью отключается
         if (isSpecialViewActive) return;
-
 
         float mouseX = Input.GetAxis("Mouse X") * Time.deltaTime * sensitivity.x;
         float mouseY = Input.GetAxis("Mouse Y") * Time.deltaTime * sensitivity.y;
@@ -70,6 +65,7 @@ public class mouse : MonoBehaviour
         }
         else
         {
+            // Принудительно сбрасываем курсор
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
         }
@@ -78,6 +74,8 @@ public class mouse : MonoBehaviour
     void ExitSpecialView()
     {
         isSpecialViewActive = false;
+
+        // Принудительно блокируем курсор и скрываем
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
@@ -87,7 +85,6 @@ public class mouse : MonoBehaviour
         if (UIManager.Instance != null)
             UIManager.Instance.HideMenu();
     }
-
 
     // Рисуем простую точку в центре экрана
     void OnGUI()
