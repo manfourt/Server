@@ -15,6 +15,9 @@ public class playermove : MonoBehaviour
 
     void Update()
     {
+        // Если время остановлено (меню ящика открыто), блокируем движение
+        if (Time.timeScale == 0) return;
+
         float horizontalInput = Input.GetAxis("Horizontal");
         float verticalInput = Input.GetAxis("Vertical");
 
