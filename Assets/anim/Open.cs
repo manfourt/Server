@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class door : MonoBehaviour
+public class Open : MonoBehaviour
 {
     private Animator anim;
     public float openDistance = 5f;
