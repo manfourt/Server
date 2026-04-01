@@ -8,6 +8,7 @@ public class ComponentData
     public string tag;             // тег объекта в сцене
     public bool isBroken;          // сломан ли компонент
     public bool existsInScene;     // присутствует ли объект в сцене
+    public bool isHardDrive;       // является ли жёстким диском (для проверки)
 }
 
 public class BrokenComponentManager : MonoBehaviour
@@ -21,31 +22,18 @@ public class BrokenComponentManager : MonoBehaviour
     {
         cameraViewManager = FindObjectOfType<CameraViewManager>();
 
-        // Если список пуст - инициализируем
         if (components == null || components.Count == 0)
         {
             InitializeDefaultComponents();
         }
-        else
-        {
-            // Проверяем, что все теги не пустые
-            foreach (var comp in components)
-            {
-                if (string.IsNullOrEmpty(comp.tag))
-                {
-                    Debug.LogError($"Компонент {comp.key} имеет пустой тег! Исправьте в инспекторе.");
-                }
-            }
-        }
 
-        // Определяем, какие объекты реально есть в сцене
         foreach (var comp in components)
         {
             if (!string.IsNullOrEmpty(comp.tag))
             {
                 GameObject obj = GameObject.FindGameObjectWithTag(comp.tag);
                 comp.existsInScene = (obj != null);
-                if (obj == null && comp.existsInScene == false)
+                if (obj == null)
                 {
                     Debug.Log($"Объект с тегом {comp.tag} не найден в сцене");
                 }
@@ -57,16 +45,21 @@ public class BrokenComponentManager : MonoBehaviour
     {
         components = new List<ComponentData>
         {
-            new ComponentData { key = KeyCode.Alpha1, tag = "Fan1", isBroken = true, existsInScene = false },
-            new ComponentData { key = KeyCode.Alpha2, tag = "Fan2", isBroken = true, existsInScene = false },
-            new ComponentData { key = KeyCode.Alpha3, tag = "PSU", isBroken = true, existsInScene = false },
-            new ComponentData { key = KeyCode.Alpha4, tag = "Cooler", isBroken = true, existsInScene = false },
-            new ComponentData { key = KeyCode.Alpha5, tag = "CPU", isBroken = true, existsInScene = false },
-            new ComponentData { key = KeyCode.Alpha6, tag = "RAM1", isBroken = true, existsInScene = false },
-            new ComponentData { key = KeyCode.Alpha7, tag = "RAM2", isBroken = true, existsInScene = false },
-            new ComponentData { key = KeyCode.Alpha8, tag = "RAM3", isBroken = true, existsInScene = false },
-            new ComponentData { key = KeyCode.Alpha9, tag = "RAM4", isBroken = true, existsInScene = false },
-            new ComponentData { key = KeyCode.Alpha0, tag = "Motherboard", isBroken = true, existsInScene = false }
+            new ComponentData { key = KeyCode.Alpha1, tag = "Fan1", isBroken = true, existsInScene = false, isHardDrive = false },
+            new ComponentData { key = KeyCode.Alpha2, tag = "Fan2", isBroken = true, existsInScene = false, isHardDrive = false },
+            new ComponentData { key = KeyCode.Alpha3, tag = "PSU", isBroken = true, existsInScene = false, isHardDrive = false },
+            new ComponentData { key = KeyCode.Alpha4, tag = "Cooler", isBroken = true, existsInScene = false, isHardDrive = false },
+            new ComponentData { key = KeyCode.Alpha5, tag = "CPU", isBroken = true, existsInScene = false, isHardDrive = false },
+            new ComponentData { key = KeyCode.Alpha6, tag = "RAM1", isBroken = true, existsInScene = false, isHardDrive = false },
+            new ComponentData { key = KeyCode.Alpha7, tag = "RAM2", isBroken = true, existsInScene = false, isHardDrive = false },
+            new ComponentData { key = KeyCode.Alpha8, tag = "RAM3", isBroken = true, existsInScene = false, isHardDrive = false },
+            new ComponentData { key = KeyCode.Alpha9, tag = "RAM4", isBroken = true, existsInScene = false, isHardDrive = false },
+            new ComponentData { key = KeyCode.F, tag = "Hard_drive1", isBroken = true, existsInScene = false, isHardDrive = true },
+            new ComponentData { key = KeyCode.G, tag = "Hard_drive2", isBroken = true, existsInScene = false, isHardDrive = true },
+            new ComponentData { key = KeyCode.H, tag = "Hard_drive3", isBroken = true, existsInScene = false, isHardDrive = true },
+            new ComponentData { key = KeyCode.J, tag = "Hard_drive4", isBroken = true, existsInScene = false, isHardDrive = true },
+            new ComponentData { key = KeyCode.K, tag = "Hard_drive5", isBroken = true, existsInScene = false, isHardDrive = true },
+            new ComponentData { key = KeyCode.L, tag = "Hard_drive6", isBroken = true, existsInScene = false, isHardDrive = true }
         };
 
         Debug.Log("Инициализированы компоненты по умолчанию");
@@ -80,30 +73,54 @@ public class BrokenComponentManager : MonoBehaviour
             {
                 if (Input.GetKeyDown(comp.key))
                 {
-                    // Проверяем, что тег не пустой
                     if (string.IsNullOrEmpty(comp.tag))
                     {
                         Debug.LogError($"Тег для клавиши {comp.key} не задан!");
                         break;
                     }
 
-                    if (comp.existsInScene && comp.isBroken)
+                    if (!comp.existsInScene)
+                    {
+                        Debug.Log($"Компонент {comp.tag} уже удалён");
+                        break;
+                    }
+
+                    if (!comp.isBroken)
+                    {
+                        Debug.Log($"Компонент {comp.tag} не сломан, удалять нельзя");
+                        break;
+                    }
+
+                    // Проверка: для жёстких дисков нужен вид R, для остальных - любой кроме R
+                    bool canDelete = false;
+
+                    if (comp.isHardDrive)
+                    {
+                        // Жёсткие диски удаляются только в режиме R
+                        canDelete = cameraViewManager.IsViewR;
+                    }
+                    else
+                    {
+                        // Остальные компоненты удаляются в любом спецвиде, кроме R
+                        // (можно удалять только в T)
+                        canDelete = !cameraViewManager.IsViewR;
+                    }
+
+                    if (canDelete)
                     {
                         GameObject obj = GameObject.FindGameObjectWithTag(comp.tag);
                         if (obj != null)
                         {
                             Destroy(obj);
                             comp.existsInScene = false;
-                            Debug.Log($"Удалён {comp.tag} (клавиша {comp.key})");
+                            Debug.Log($"Удалён {comp.tag} (клавиша {comp.key}) в режиме {(cameraViewManager.IsViewR ? "R" : "T")}");
                         }
                     }
                     else
                     {
-                        if (!comp.existsInScene)
-                            Debug.Log($"Компонент {comp.tag} уже удалён");
-                        else if (!comp.isBroken)
-                            Debug.Log($"Компонент {comp.tag} не сломан, удалять нельзя");
+                        Debug.Log($"Нельзя удалить {comp.tag} в текущем режиме. {(comp.isHardDrive ? "Жёсткие диски удаляются только в режиме R" : "Обычные компоненты удаляются только в режиме T")}");
                     }
+
                     break;
                 }
             }

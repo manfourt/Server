@@ -401,7 +401,7 @@ GameObject:
   - component: {fileID: 93799641}
   m_Layer: 8
   m_Name: harddrive4
-  m_TagString: ServerBox
+  m_TagString: Hard_drive6
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -4090,7 +4090,7 @@ GameObject:
   - component: {fileID: 594831373}
   m_Layer: 8
   m_Name: harddrive3
-  m_TagString: ServerBox
+  m_TagString: Hard_drive4
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -4261,7 +4261,7 @@ GameObject:
   - component: {fileID: 646139168}
   m_Layer: 8
   m_Name: harddrive2
-  m_TagString: ServerBox
+  m_TagString: Hard_drive2
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -6085,7 +6085,7 @@ GameObject:
   - component: {fileID: 1009080717}
   m_Layer: 8
   m_Name: harddrive6
-  m_TagString: ServerBox
+  m_TagString: Hard_drive5
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -7648,7 +7648,7 @@ GameObject:
   - component: {fileID: 1220125058}
   m_Layer: 8
   m_Name: harddrive5
-  m_TagString: ServerBox
+  m_TagString: Hard_drive3
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -8120,7 +8120,7 @@ GameObject:
   - component: {fileID: 1325361589}
   m_Layer: 8
   m_Name: harddrive1
-  m_TagString: ServerBox
+  m_TagString: Hard_drive1
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

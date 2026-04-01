@@ -1,9 +1,9 @@
-// CameraViewManager.cs
 using UnityEngine;
 
 public class CameraViewManager : MonoBehaviour
 {
     public static CameraViewManager Instance;
+
     [Header("Настройки камеры")]
     public Camera mainCamera;
     public Transform viewpoint_R;
@@ -14,14 +14,16 @@ public class CameraViewManager : MonoBehaviour
     private Vector3 originalPosition;
     private Quaternion originalRotation;
     private bool isSpecialViewActive = false;
+    private string currentViewType = "";  // "R" или "T"
+
     private Vector3 targetPosition;
     private Quaternion targetRotation;
-    private string currentViewType = "";
-
     private mouse playerMouse;
 
-    // Публичное свойство для доступа из других скриптов
+    // Публичные свойства
     public bool IsSpecialViewActive => isSpecialViewActive;
+    public bool IsViewR => currentViewType == "R";  // Проверка, активен ли вид R
+    public bool IsViewT => currentViewType == "T";  // Проверка, активен ли вид T
 
     void Awake()
     {
@@ -84,6 +86,8 @@ public class CameraViewManager : MonoBehaviour
             UIManager.Instance.HideMenu();
 
         Time.timeScale = 1;
+
+        Debug.Log($"Активирован режим {viewType}");
     }
 
     public void ExitSpecialView()
@@ -99,6 +103,8 @@ public class CameraViewManager : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        Debug.Log("Выход из спецрежима");
     }
 
     public void UpdateOriginalPosition(Vector3 newPos, Quaternion newRot)

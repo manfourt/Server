@@ -16,6 +16,12 @@ TagManager:
   - RAM3
   - RAM4
   - Motherboard
+  - Hard_drive1
+  - Hard_drive2
+  - Hard_drive3
+  - Hard_drive4
+  - Hard_drive5
+  - Hard_drive6
   layers:
   - Default
   - TransparentFX
