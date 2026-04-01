@@ -8,6 +8,8 @@ public class Open : MonoBehaviour
     public float openDistance = 5f;
     private Transform player;
     private Outline outlineComponent;
+    private UIManager uiManager;
+    private CameraViewManager cameraViewManager;
 
     void Start()
     {
@@ -15,6 +17,8 @@ public class Open : MonoBehaviour
         player = GameObject.FindGameObjectWithTag("Player").transform;
         anim.SetBool("Open", true);
         outlineComponent = GetComponent<Outline>();
+        cameraViewManager = FindObjectOfType<CameraViewManager>();
+
         if (outlineComponent != null)
         {
             outlineComponent.enabled = false;
@@ -23,6 +27,8 @@ public class Open : MonoBehaviour
         {
             Debug.LogError("Outline component not found on ");
         }
+
+        uiManager = UIManager.Instance;
     }
 
     void Update()
@@ -44,7 +50,7 @@ public class Open : MonoBehaviour
                 isLookingAtDoor = true;
 
                 // ¬ключаем обводку при наведении
-                if (!outlineComponent.enabled)
+                if (!outlineComponent.enabled && !cameraViewManager.IsSpecialViewActive)
                 {
                     outlineComponent.enabled = true;
                 }
@@ -52,6 +58,10 @@ public class Open : MonoBehaviour
                 // ќткрытие/закрытие по клику
                 if (Input.GetMouseButtonDown(0))
                 {
+                    // ≈сли меню активно (€щик открыт) Ч игнорируем клик по двери
+                    if (uiManager != null && uiManager.IsMenuOpen || cameraViewManager.IsSpecialViewActive)
+                    { return; outlineComponent.enabled = false; }
+
                     bool isOpen = anim.GetBool("Open");
                     anim.SetBool("Open", !isOpen);
                 }

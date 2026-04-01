@@ -4,11 +4,11 @@ using UnityEngine;
 public class ServerBoxController : MonoBehaviour
 {
     private bool isOpen = false;
-    private CameraViewManager cameraViewManager;
+    //private CameraViewManager cameraViewManager;
 
     void Start()
     {
-        cameraViewManager = FindObjectOfType<CameraViewManager>();
+        //cameraViewManager = FindObjectOfType<CameraViewManager>();
     }
 
     public void OpenBoxUI()
@@ -21,9 +21,6 @@ public class ServerBoxController : MonoBehaviour
         }
 
         Time.timeScale = 0;
-
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
     }
 
     public void CloseBoxUI()
@@ -37,8 +34,5 @@ public class ServerBoxController : MonoBehaviour
         }
 
         Time.timeScale = 1;
-
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
     }
 }

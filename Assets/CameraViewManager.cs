@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class CameraViewManager : MonoBehaviour
 {
+    public static CameraViewManager Instance;
     [Header("Настройки камеры")]
     public Camera mainCamera;
     public Transform viewpoint_R;
@@ -21,6 +22,12 @@ public class CameraViewManager : MonoBehaviour
 
     // Публичное свойство для доступа из других скриптов
     public bool IsSpecialViewActive => isSpecialViewActive;
+
+    void Awake()
+    {
+        if (Instance == null) Instance = this;
+        else Destroy(gameObject);
+    }
 
     void Start()
     {

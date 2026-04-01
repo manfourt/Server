@@ -58,17 +58,6 @@ public class mouse : MonoBehaviour
     public void SetSpecialView(bool active)
     {
         isSpecialViewActive = active;
-        if (active)
-        {
-            Cursor.lockState = CursorLockMode.None; // Освобождаем курсор для UI
-            Cursor.visible = true;
-        }
-        else
-        {
-            // Принудительно сбрасываем курсор
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-        }
     }
 
     void ExitSpecialView()
