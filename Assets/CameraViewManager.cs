@@ -36,6 +36,13 @@ public class CameraViewManager : MonoBehaviour
         if (mainCamera == null) mainCamera = Camera.main;
         playerMouse = FindObjectOfType<mouse>();
 
+        // ВАЖНО: Добавляем PhysicsRaycaster на камеру для кликов
+        if (mainCamera.GetComponent<UnityEngine.EventSystems.PhysicsRaycaster>() == null)
+        {
+            mainCamera.gameObject.AddComponent<UnityEngine.EventSystems.PhysicsRaycaster>();
+            Debug.Log("Добавлен PhysicsRaycaster на камеру");
+        }
+
         originalPosition = mainCamera.transform.position;
         originalRotation = mainCamera.transform.rotation;
     }
@@ -59,10 +66,36 @@ public class CameraViewManager : MonoBehaviour
             mainCamera.transform.position = Vector3.Lerp(mainCamera.transform.position, targetPosition, Time.deltaTime * smoothSpeed);
             mainCamera.transform.rotation = Quaternion.Lerp(mainCamera.transform.rotation, targetRotation, Time.deltaTime * smoothSpeed);
         }
+
+        HandleCursorForClicking();
+    }
+
+    void HandleCursorForClicking()
+    {
+        // В режиме R показываем курсор для кликов по жёстким дискам
+        if (isSpecialViewActive && IsViewR)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+        // В режиме T курсор скрываем (используем клавиши)
+        else if (isSpecialViewActive && IsViewT)
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+        // В обычном режиме
+        else if (!isSpecialViewActive)
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
     }
 
     public void SetView(string viewType)
     {
+        ClearAllOutlines();
+
         isSpecialViewActive = true;
         currentViewType = viewType;
 
@@ -71,12 +104,20 @@ public class CameraViewManager : MonoBehaviour
             if (viewpoint_R == null) return;
             targetPosition = viewpoint_R.position;
             targetRotation = viewpoint_R.rotation;
+
+            // Включаем курсор для кликов по жёстким дискам
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
         else if (viewType == "T")
         {
             if (viewpoint_T == null) return;
             targetPosition = viewpoint_T.position;
             targetRotation = viewpoint_T.rotation;
+
+            // В режиме T курсор скрыт, удаление через клавиши
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
         }
 
         if (playerMouse != null)
@@ -89,6 +130,7 @@ public class CameraViewManager : MonoBehaviour
 
         Debug.Log($"Активирован режим {viewType}");
     }
+
 
     public void ExitSpecialView()
     {
@@ -114,5 +156,42 @@ public class CameraViewManager : MonoBehaviour
             originalPosition = newPos;
             originalRotation = newRot;
         }
+    }
+
+    void ClearAllOutlines()
+    {
+        // Находим все объекты с Outline
+        Outline[] allOutlines = FindObjectsOfType<Outline>();
+        foreach (Outline outline in allOutlines)
+        {
+            outline.enabled = false;
+        }
+
+        // Также сбрасываем выделение у PlayerInteraction
+        PlayerInteraction playerInteraction = FindObjectOfType<PlayerInteraction>();
+        if (playerInteraction != null)
+        {
+            playerInteraction.ClearCurrentSelection();
+        }
+
+        Debug.Log("Все подсветки сброшены");
+    }
+
+    // Метод для включения/отключения кликабельности жёстких дисков
+    void EnableHardDriveClickables(bool enable)
+    {
+        HardDriveClickable[] clickables = FindObjectsOfType<HardDriveClickable>();
+        foreach (HardDriveClickable clickable in clickables)
+        {
+            clickable.enabled = enable;
+            if (!enable)
+            {
+                // Отключаем подсветку
+                Outline outline = clickable.GetComponent<Outline>();
+                if (outline != null)
+                    outline.enabled = false;
+            }
+        }
+        Debug.Log($"Кликабельность жёстких дисков {(enable ? "включена" : "выключена")}");
     }
 }

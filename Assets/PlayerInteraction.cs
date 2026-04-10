@@ -9,6 +9,7 @@ public class PlayerInteraction : MonoBehaviour
 
     private ServerBoxController targetBox;
     private CameraViewManager cameraViewManager;
+    private Outline currentOutline;
 
     void Start()
     {
@@ -42,5 +43,16 @@ public class PlayerInteraction : MonoBehaviour
                 }
             }
         }
+    }
+
+    // Метод для принудительной очистки выделения
+    public void ClearCurrentSelection()
+    {
+        if (currentOutline != null)
+        {
+            currentOutline.enabled = false;
+            currentOutline = null;
+        }
+        targetBox = null;
     }
 }
