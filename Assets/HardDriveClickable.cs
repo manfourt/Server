@@ -131,11 +131,4 @@ public class HardDriveClickable : MonoBehaviour, IPointerClickHandler, IPointerE
             outline.enabled = false;
         }
     }
-    
-    // Метод для ручного отключения подсветки при выходе из режима
-    public void DisableOutline()
-    {
-        if (outline != null)
-            outline.enabled = false;
-    }
 }

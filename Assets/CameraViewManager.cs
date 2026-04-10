@@ -36,12 +36,6 @@ public class CameraViewManager : MonoBehaviour
         if (mainCamera == null) mainCamera = Camera.main;
         playerMouse = FindObjectOfType<mouse>();
 
-        // ВАЖНО: Добавляем PhysicsRaycaster на камеру для кликов
-        if (mainCamera.GetComponent<UnityEngine.EventSystems.PhysicsRaycaster>() == null)
-        {
-            mainCamera.gameObject.AddComponent<UnityEngine.EventSystems.PhysicsRaycaster>();
-            Debug.Log("Добавлен PhysicsRaycaster на камеру");
-        }
 
         originalPosition = mainCamera.transform.position;
         originalRotation = mainCamera.transform.rotation;
@@ -175,23 +169,5 @@ public class CameraViewManager : MonoBehaviour
         }
 
         Debug.Log("Все подсветки сброшены");
-    }
-
-    // Метод для включения/отключения кликабельности жёстких дисков
-    void EnableHardDriveClickables(bool enable)
-    {
-        HardDriveClickable[] clickables = FindObjectsOfType<HardDriveClickable>();
-        foreach (HardDriveClickable clickable in clickables)
-        {
-            clickable.enabled = enable;
-            if (!enable)
-            {
-                // Отключаем подсветку
-                Outline outline = clickable.GetComponent<Outline>();
-                if (outline != null)
-                    outline.enabled = false;
-            }
-        }
-        Debug.Log($"Кликабельность жёстких дисков {(enable ? "включена" : "выключена")}");
     }
 }

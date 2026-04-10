@@ -73,7 +73,7 @@ public class BrokenComponentManager : MonoBehaviour
         }
 
         // Настраиваем слой для raycast
-        obj.layer = LayerMask.NameToLayer("HardDrive");
+        obj.layer = LayerMask.NameToLayer("BrokenHardDrive");
 
         // Убеждаемся, что у объекта есть компонент Outline
         Outline outline = obj.GetComponent<Outline>();
