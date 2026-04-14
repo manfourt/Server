@@ -22,6 +22,7 @@ TagManager:
   - Hard_drive4
   - Hard_drive5
   - Hard_drive6
+  - Hard_drive
   layers:
   - Default
   - TransparentFX

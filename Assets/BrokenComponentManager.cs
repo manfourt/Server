@@ -101,12 +101,12 @@ public class BrokenComponentManager : MonoBehaviour
             new ComponentData { key = KeyCode.Alpha9, tag = "RAM4", isBroken = true, existsInScene = false, isHardDrive = false },
 
             // Жёсткие диски (теперь с ID для кликов)
-            new ComponentData { tag = "Hard_drive1", isBroken = true, existsInScene = false, isHardDrive = true, hardDriveId = "1" },
-            new ComponentData { tag = "Hard_drive2", isBroken = true, existsInScene = false, isHardDrive = true, hardDriveId = "2" },
-            new ComponentData { tag = "Hard_drive3", isBroken = true, existsInScene = false, isHardDrive = true, hardDriveId = "3" },
-            new ComponentData { tag = "Hard_drive4", isBroken = true, existsInScene = false, isHardDrive = true, hardDriveId = "4" },
-            new ComponentData { tag = "Hard_drive5", isBroken = true, existsInScene = false, isHardDrive = true, hardDriveId = "5" },
-            new ComponentData { tag = "Hard_drive6", isBroken = true, existsInScene = false, isHardDrive = true, hardDriveId = "6" }
+            new ComponentData { tag = "Hard_drive", isBroken = true, existsInScene = false, isHardDrive = true, hardDriveId = "1" },
+            new ComponentData { tag = "Hard_drive", isBroken = true, existsInScene = false, isHardDrive = true, hardDriveId = "2" },
+            new ComponentData { tag = "Hard_drive", isBroken = true, existsInScene = false, isHardDrive = true, hardDriveId = "3" },
+            new ComponentData { tag = "Hard_drive", isBroken = true, existsInScene = false, isHardDrive = true, hardDriveId = "4" },
+            new ComponentData { tag = "Hard_drive", isBroken = true, existsInScene = false, isHardDrive = true, hardDriveId = "5" },
+            new ComponentData { tag = "Hard_drive", isBroken = true, existsInScene = false, isHardDrive = true, hardDriveId = "6" }
         };
 
         Debug.Log("Инициализированы компоненты по умолчанию");
