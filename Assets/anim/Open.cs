@@ -10,6 +10,7 @@ public class Open : MonoBehaviour
     private Outline outlineComponent;
     private UIManager uiManager;
     private CameraViewManager cameraViewManager;
+    public bool openserverbox;
 
     void Start()
     {
@@ -18,6 +19,7 @@ public class Open : MonoBehaviour
         anim.SetBool("Open", true);
         outlineComponent = GetComponent<Outline>();
         cameraViewManager = FindObjectOfType<CameraViewManager>();
+        openserverbox = !(anim.GetBool("Open"));
 
         if (outlineComponent != null)
         {
@@ -58,12 +60,33 @@ public class Open : MonoBehaviour
                 // Открытие/закрытие по клику
                 if (Input.GetMouseButtonDown(0))
                 {
-                    // Если меню активно (ящик открыт) — игнорируем клик по двери
-                    if (uiManager != null && uiManager.IsMenuOpen || cameraViewManager.IsSpecialViewActive)
-                    { return; outlineComponent.enabled = false; }
+                    Debug.Log($"ЛКМ на объекте {gameObject.name}");
+
+                    if ((uiManager != null && uiManager.IsMenuOpen) || cameraViewManager.IsSpecialViewActive)
+                    {
+                        Debug.Log("Клик заблокирован: меню открыто или спецрежим");
+                        return;
+                    }
 
                     bool isOpen = anim.GetBool("Open");
+                    Debug.Log($"Текущее состояние анимации isOpen = {isOpen}");
+
                     anim.SetBool("Open", !isOpen);
+                    Debug.Log($"Новое состояние анимации = {!isOpen}");
+
+                    // Проверяем наличие ServerBoxController
+                    ServerBoxController serverBox = GetComponent<ServerBoxController>();
+                    Debug.Log($"ServerBoxController найден: {serverBox != null}");
+
+                    if (serverBox != null)
+                    {
+                        openserverbox = isOpen;
+                        Debug.Log($"!!! openserverbox изменён на {openserverbox} !!!");
+                    }
+                    else
+                    {
+                        Debug.Log("Это не ящик (ServerBoxController отсутствует)");
+                    }
                 }
             }
         }

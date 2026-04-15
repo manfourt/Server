@@ -33,19 +33,27 @@ public class PlayerInteraction : MonoBehaviour
             if (hit.transform.CompareTag("ServerBox"))
             {
                 targetBox = hit.transform.GetComponent<ServerBoxController>();
+                Open openScript = hit.transform.GetComponent<Open>();
+
+                // Отладка - проверяем, что нашли
+                Debug.Log($"Open найден: {openScript != null}, openserverbox = {openScript?.openserverbox}");
 
                 if (Input.GetKeyDown(KeyCode.E))
                 {
-                    if (targetBox != null)
+                    if (targetBox != null && openScript != null && openScript.openserverbox)
                     {
+                        Debug.Log("Вызов OpenBoxUI");
                         targetBox.OpenBoxUI();
+                    }
+                    else
+                    {
+                        Debug.Log($"Не могу открыть UI: targetBox={targetBox != null}, openScript={openScript != null}, openserverbox={openScript?.openserverbox}");
                     }
                 }
             }
         }
     }
 
-    // Метод для принудительной очистки выделения
     public void ClearCurrentSelection()
     {
         if (currentOutline != null)
