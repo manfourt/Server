@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class CameraViewManager : MonoBehaviour
 {
@@ -25,6 +26,10 @@ public class CameraViewManager : MonoBehaviour
     public bool IsViewR => currentViewType == "R";  // Проверка, активен ли вид R
     public bool IsViewT => currentViewType == "T";  // Проверка, активен ли вид T
 
+    [Header("Настройки Raycast")]
+    public LayerMask clickableLayersR; // Слои для кликов в режиме R
+    public LayerMask clickableLayersT; // Слои для кликов в режиме T
+
     void Awake()
     {
         if (Instance == null) Instance = this;
@@ -36,6 +41,22 @@ public class CameraViewManager : MonoBehaviour
         if (mainCamera == null) mainCamera = Camera.main;
         playerMouse = FindObjectOfType<mouse>();
 
+        // Добавляем PhysicsRaycaster
+        if (mainCamera.GetComponent<UnityEngine.EventSystems.PhysicsRaycaster>() == null)
+        {
+            mainCamera.gameObject.AddComponent<UnityEngine.EventSystems.PhysicsRaycaster>();
+            Debug.Log("Добавлен PhysicsRaycaster на камеру");
+        }
+
+        // Настраиваем слои для Raycast
+        int hardDriveLayer = LayerMask.NameToLayer("BrokenHardDrive");
+        int componentLayer = LayerMask.NameToLayer("ClickableComponent");
+
+        if (hardDriveLayer != -1)
+            clickableLayersR = 1 << hardDriveLayer;
+
+        if (componentLayer != -1)
+            clickableLayersT = 1 << componentLayer;
 
         originalPosition = mainCamera.transform.position;
         originalRotation = mainCamera.transform.rotation;
@@ -75,8 +96,8 @@ public class CameraViewManager : MonoBehaviour
         // В режиме T курсор скрываем (используем клавиши)
         else if (isSpecialViewActive && IsViewT)
         {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
         // В обычном режиме
         else if (!isSpecialViewActive)
@@ -88,6 +109,27 @@ public class CameraViewManager : MonoBehaviour
 
     public void SetView(string viewType)
     {
+        ClearAllOutlines();
+
+        isSpecialViewActive = true;
+        currentViewType = viewType;
+
+        // Настраиваем PhysicsRaycaster для нужных слоёв
+        PhysicsRaycaster raycaster = mainCamera.GetComponent<PhysicsRaycaster>();
+        if (raycaster != null)
+        {
+            if (viewType == "R")
+            {
+                raycaster.eventMask = clickableLayersR;
+                Debug.Log("Raycast настроен на слой BrokenHardDrive");
+            }
+            else if (viewType == "T")
+            {
+                raycaster.eventMask = clickableLayersT;
+                Debug.Log("Raycast настроен на слой ClickableComponent");
+            }
+        }
+
         ClearAllOutlines();
 
         isSpecialViewActive = true;
@@ -109,9 +151,9 @@ public class CameraViewManager : MonoBehaviour
             targetPosition = viewpoint_T.position;
             targetRotation = viewpoint_T.rotation;
 
-            // В режиме T курсор скрыт, удаление через клавиши
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
+            // Включаем курсор для кликов по жёстким дискам
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
 
         if (playerMouse != null)

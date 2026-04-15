@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -6,8 +7,9 @@ using UnityEngine.EventSystems;
 public class HardDriveClickable : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
 {
     [Header("Настройки")]
-    public string hardDriveId; // ID жёсткого диска (1-6)
-    
+    public string componentId; // ID жёсткого диска (1-6)
+    public bool isHardDrive = false; // Это жёсткий диск? (определяет, в каком режиме удалять)
+
     private Outline outline;
     private CameraViewManager cameraViewManager;
     private BrokenComponentManager brokenComponentManager;
@@ -27,39 +29,97 @@ public class HardDriveClickable : MonoBehaviour, IPointerClickHandler, IPointerE
         
         cameraViewManager = FindObjectOfType<CameraViewManager>();
         brokenComponentManager = FindObjectOfType<BrokenComponentManager>();
+
+        SetupLayer();
     }
+
+    void SetupLayer()
+    {
+        string layerName = isHardDrive ? "BrokenHardDrive" : "BrokenCompnent";
+        int targetLayer = LayerMask.NameToLayer(layerName);
+
+        if (targetLayer != -1)
+        {
+            gameObject.layer = targetLayer;
+            Debug.Log($"Установлен слой {layerName} для {gameObject.name}");
+        }
+        else
+        {
+            Debug.LogWarning($"Слой {layerName} не найден! Создайте его в Project Settings");
+        }
+    }
+
 
     void Update()
     {
-        if (cameraViewManager != null && cameraViewManager.IsSpecialViewActive && cameraViewManager.IsViewR)
+        // Проверяем, активен ли спецрежим и подходит ли он для этого типа компонента
+        if (cameraViewManager != null && cameraViewManager.IsSpecialViewActive)
         {
-            // Ручной Raycast
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
+            bool isCorrectMode = false;
+            string requiredMode = "";
 
-            // Создаём маску только для слоя HardDrive
-            int hardDriveLayer = LayerMask.NameToLayer("BrokenHardDrive");
-            int layerMask = 1 << hardDriveLayer;
-
-            if (Physics.Raycast(ray, out hit, Mathf.Infinity, layerMask))
+            if (isHardDrive)
             {
-                if (hit.collider.gameObject == gameObject)
-                {
-                    if (!isHovered)
-                    {
-                        isHovered = true;
-                        outline.enabled = true;
-                        Debug.Log($"Наведение на {gameObject.name}");
-                    }
+                // Жёсткие диски удаляются только в режиме R
+                isCorrectMode = cameraViewManager.IsViewR;
+                requiredMode = "R";
+            }
+            else
+            {
+                // Обычные компоненты удаляются только в режиме T
+                isCorrectMode = cameraViewManager.IsViewT;
+                requiredMode = "T";
+            }
 
-                    if (Input.GetMouseButtonDown(0))
+            if (isCorrectMode)
+            {
+                // Ручной Raycast для точного попадания
+                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                RaycastHit hit;
+
+                // Получаем маску слоя для текущего типа компонента
+                int componentLayer = LayerMask.NameToLayer(isHardDrive ? "BrokenHardDrive" : "BrokenCompnent");
+                int layerMask = 1 << componentLayer;
+
+                if (Physics.Raycast(ray, out hit, Mathf.Infinity, layerMask))
+                {
+                    if (hit.collider.gameObject == gameObject)
                     {
-                        Debug.Log($"Клик по {gameObject.name}");
-                        if (brokenComponentManager != null)
+                        if (!isHovered)
                         {
-                            brokenComponentManager.DeleteHardDrive(hardDriveId);
-                            Destroy(gameObject);
+                            isHovered = true;
+                            outline.enabled = true;
+                            Debug.Log($"Наведение на {gameObject.name} (режим {requiredMode})");
                         }
+
+                        if (Input.GetMouseButtonDown(0))
+                        {
+                            Debug.Log($"Клик по {gameObject.name}");
+                            if (brokenComponentManager != null)
+                            {
+                                bool success = false;
+
+                                if (isHardDrive)
+                                {
+                                    success = brokenComponentManager.DeleteHardDrive(componentId);
+                                }
+                                else
+                                {
+                                    success = brokenComponentManager.DeleteComponent(componentId);
+                                }
+
+                                if (success)
+                                {
+                                    isDestroyed = true;
+                                    Destroy(gameObject);
+                                }
+                            }
+                        }
+                    }
+                    else if (isHovered)
+                    {
+                        isHovered = false;
+                        outline.enabled = false;
                     }
                 }
                 else if (isHovered)
@@ -70,12 +130,14 @@ public class HardDriveClickable : MonoBehaviour, IPointerClickHandler, IPointerE
             }
             else if (isHovered)
             {
+                // Не в том режиме - отключаем подсветку
                 isHovered = false;
                 outline.enabled = false;
             }
         }
         else if (isHovered)
         {
+            // Не в спецрежиме - отключаем подсветку
             isHovered = false;
             outline.enabled = false;
         }
@@ -83,52 +145,87 @@ public class HardDriveClickable : MonoBehaviour, IPointerClickHandler, IPointerE
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        // Проверяем, что мы в режиме просмотра и это вид R
-        if (cameraViewManager == null || !cameraViewManager.IsSpecialViewActive || !cameraViewManager.IsViewR)
+        // Проверяем режим
+        if (cameraViewManager == null || !cameraViewManager.IsSpecialViewActive)
         {
-            Debug.Log("Удаление жёстких дисков доступно только в режиме R (вид на диски)");
+            Debug.Log("Удаление доступно только в спецрежиме");
             return;
         }
-        
-        // Проверяем, не уничтожен ли уже объект
+
+        if (isHardDrive && !cameraViewManager.IsViewR)
+        {
+            Debug.Log("Жёсткие диски удаляются только в режиме R");
+            return;
+        }
+
+        if (!isHardDrive && !cameraViewManager.IsViewT)
+        {
+            Debug.Log("Обычные компоненты удаляются только в режиме T");
+            return;
+        }
+
         if (isDestroyed)
         {
-            Debug.Log($"Жёсткий диск {hardDriveId} уже удалён");
+            Debug.Log($"Компонент {componentId} уже удалён");
             return;
         }
-        
-        // Удаляем через менеджер
+
         if (brokenComponentManager != null)
         {
-            bool success = brokenComponentManager.DeleteHardDrive(hardDriveId);
+            bool success = false;
+            if (isHardDrive)
+            {
+                success = brokenComponentManager.DeleteHardDrive(componentId);
+            }
+            else
+            {
+                success = brokenComponentManager.DeleteComponent(componentId);
+            }
+
             if (success)
             {
                 isDestroyed = true;
                 Destroy(gameObject);
-                Debug.Log($"Жёсткий диск {hardDriveId} удалён кликом мыши");
+                Debug.Log($"Компонент {componentId} удалён кликом мыши в режиме {(isHardDrive ? "R" : "T")}");
             }
         }
     }
 
+
     public void OnPointerEnter(PointerEventData eventData)
     {
-        // Подсвечиваем ТОЛЬКО в режиме R
-        if (cameraViewManager != null && cameraViewManager.IsSpecialViewActive && cameraViewManager.IsViewR && !isDestroyed)
+        bool shouldHighlight = false;
+
+        if (cameraViewManager != null && cameraViewManager.IsSpecialViewActive && !isDestroyed)
         {
-            if (outline != null)
+            if (isHardDrive && cameraViewManager.IsViewR)
             {
-                outline.enabled = true;
-                Debug.Log($"Наведение на жёсткий диск {hardDriveId} (подсветка включена)");
+                shouldHighlight = true;
             }
+            else if (!isHardDrive && cameraViewManager.IsViewT)
+            {
+                shouldHighlight = true;
+            }
+        }
+
+        if (shouldHighlight && outline != null)
+        {
+            outline.enabled = true;
+            Debug.Log($"Наведение на {gameObject.name} (подсветка включена)");
         }
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        // Отключаем подсветку
         if (outline != null)
         {
             outline.enabled = false;
         }
+    }
+
+    public void DisableOutline()
+    {
+        if (outline != null)
+            outline.enabled = false;
     }
 }
