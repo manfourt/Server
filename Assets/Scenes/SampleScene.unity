@@ -1902,7 +1902,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   openDistance: 5
-  openserverbox: 0
 --- !u!114 &286176383
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2391,7 +2390,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   openDistance: 2
-  openserverbox: 0
 --- !u!114 &337625641
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12883,6 +12881,25 @@ MonoBehaviour:
   interactableLayer:
     serializedVersion: 2
     m_Bits: 8
+<<<<<<< HEAD
+<<<<<<< HEAD
+  handParent: {fileID: 454159943}
+  pickupRange: 3
+  pickupLayer:
+    serializedVersion: 2
+    m_Bits: 512
+--- !u!1 &2058806636 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 95ea7ae0f01554548af5d0b155d8dfc9, type: 3}
+  m_PrefabInstance: {fileID: 944536940}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &2058806637 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 95ea7ae0f01554548af5d0b155d8dfc9, type: 3}
+  m_PrefabInstance: {fileID: 944536940}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2058806638
+=======
   playerCamera: {fileID: 0}
 --- !u!1 &2072107476
 GameObject:
@@ -12906,11 +12923,24 @@ GameObject:
   m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!114 &2072107477
+>>>>>>> fbfd4ea5a20a58a62368d5af2432be78d48727e9
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
+<<<<<<< HEAD
+  m_GameObject: {fileID: 2058806636}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8bd6118400b469428ed5c761f125d59, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  componentId: Fan2
+  isHardDrive: 0
+  isBroken: 0
+--- !u!114 &2058806639
+=======
   m_GameObject: {fileID: 2072107476}
   m_Enabled: 1
   m_EditorHideFlags: 0
@@ -12923,11 +12953,28 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
 --- !u!114 &2072107478
+>>>>>>> fbfd4ea5a20a58a62368d5af2432be78d48727e9
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
+<<<<<<< HEAD
+  m_GameObject: {fileID: 2058806636}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5fea29bb7c508c244a1f805a5fd3fc4d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  outlineMode: 0
+  outlineColor: {r: 1, g: 1, b: 1, a: 1}
+  outlineWidth: 2
+  precomputeOutline: 0
+  bakeKeys: []
+  bakeValues: []
+--- !u!65 &2058806640
+BoxCollider:
+=======
   m_GameObject: {fileID: 2072107476}
   m_Enabled: 1
   m_EditorHideFlags: 0
@@ -12947,10 +12994,28 @@ MonoBehaviour:
   m_PresetInfoIsWorld: 1
 --- !u!223 &2072107479
 Canvas:
+>>>>>>> fbfd4ea5a20a58a62368d5af2432be78d48727e9
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
+<<<<<<< HEAD
+  m_GameObject: {fileID: 2058806636}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 15.6, y: 3.18, z: 15.3}
+  m_Center: {x: 23.83, y: -3.17, z: 18.6}
+=======
   m_GameObject: {fileID: 2072107476}
   m_Enabled: 1
   serializedVersion: 3
@@ -13058,6 +13123,10 @@ MonoBehaviour:
   screenChangeInterval: 10
   notificationDuration: 5
   fadeDuration: 0.5
+>>>>>>> fbfd4ea5a20a58a62368d5af2432be78d48727e9
+=======
+  playerCamera: {fileID: 0}
+>>>>>>> parent of da8c3d3 (взять)
 --- !u!1001 &2072679374
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -13430,7 +13499,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   openDistance: 2
-  openserverbox: 0
 --- !u!95 &2106700460
 Animator:
   serializedVersion: 5
