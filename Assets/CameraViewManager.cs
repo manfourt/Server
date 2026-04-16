@@ -93,7 +93,7 @@ public class CameraViewManager : MonoBehaviour
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
         }
-        // В режиме T курсор скрываем (используем клавиши)
+        // В режиме T курсор показываем
         else if (isSpecialViewActive && IsViewT)
         {
             Cursor.lockState = CursorLockMode.None;
@@ -126,7 +126,7 @@ public class CameraViewManager : MonoBehaviour
             else if (viewType == "T")
             {
                 raycaster.eventMask = clickableLayersT;
-                Debug.Log("Raycast настроен на слой ClickableComponent");
+                Debug.Log("Raycast настроен на слой BrokenComponent");
             }
         }
 
@@ -151,7 +151,7 @@ public class CameraViewManager : MonoBehaviour
             targetPosition = viewpoint_T.position;
             targetRotation = viewpoint_T.rotation;
 
-            // Включаем курсор для кликов по жёстким дискам
+            // Включаем курсор для кликов по  компонентам
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
         }

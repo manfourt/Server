@@ -15,7 +15,7 @@ public class MonitorUIManager : MonoBehaviour
     [Header("Настройки")]
     public Texture2D[] screenshots;         // Массив скриншотов
     public float screenChangeInterval = 10f; // Интервал смены
-    public float notificationDuration = 5f;  // Длительность уведомления
+    public float notificationDuration = 20f;  // Длительность уведомления
     public float fadeDuration = 0.5f;        // Длительность затухания
 
     private int currentScreenIndex = 0;
@@ -58,37 +58,6 @@ public class MonitorUIManager : MonoBehaviour
         // Запускаем смену скриншотов
         StartCoroutine(RotateScreenshots());
 
-        // Фоновое изображение (должно быть САМЫМ НИЖНИМ)
-        if (backgroundImage != null)
-        {
-            Canvas bgCanvas = backgroundImage.gameObject.GetComponent<Canvas>();
-            if (bgCanvas == null) bgCanvas = backgroundImage.gameObject.AddComponent<Canvas>();
-            bgCanvas.overrideSorting = true;
-            bgCanvas.sortingOrder = 0;
-        }
-
-        // Панель уведомлений (должна быть ПОВЕРХ фона)
-        if (notificationPanel != null)
-        {
-            Canvas panelCanvas = notificationPanel.GetComponent<Canvas>();
-            if (panelCanvas == null) panelCanvas = notificationPanel.AddComponent<Canvas>();
-            panelCanvas.overrideSorting = true;
-            panelCanvas.sortingOrder = 10;
-
-            // Добавляем непрозрачный фон, чтобы текст не смешивался со скриншотом
-            Image panelImage = notificationPanel.GetComponent<Image>();
-            if (panelImage == null) panelImage = notificationPanel.AddComponent<Image>();
-            panelImage.color = new Color(0, 0, 0, 0.85f);
-        }
-
-        // Текст (самый верхний)
-        if (notificationText != null)
-        {
-            Canvas textCanvas = notificationText.gameObject.GetComponent<Canvas>();
-            if (textCanvas == null) textCanvas = notificationText.gameObject.AddComponent<Canvas>();
-            textCanvas.overrideSorting = true;
-            textCanvas.sortingOrder = 11;
-        }
     }
 
     IEnumerator RotateScreenshots()
@@ -171,7 +140,7 @@ public class MonitorUIManager : MonoBehaviour
         }
 
         notificationGroup.alpha = 1f;
-        yield return new WaitForSeconds(2f);
+        yield return new WaitForSeconds(15f);
 
         // Плавное исчезновение
         float elapsedTime = 0;
