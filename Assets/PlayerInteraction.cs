@@ -1,66 +1,103 @@
-// PlayerInteraction.cs
 using UnityEngine;
 
 public class PlayerInteraction : MonoBehaviour
 {
-    public float interactRange = 3f;
-    public LayerMask interactableLayer;
-    public Camera playerCamera;
+    [SerializeField] float interactRange = 3f;
+    [SerializeField] LayerMask interactableLayer;
+    [SerializeField] Camera playerCamera;
 
-    private ServerBoxController targetBox;
-    private CameraViewManager cameraViewManager;
-    private Outline currentOutline;
+    CameraViewManager cameraViewManager;
+
+    bool waitingForViewChoice = false;
 
     void Start()
     {
-        if (playerCamera == null) playerCamera = Camera.main;
-        cameraViewManager = FindObjectOfType<CameraViewManager>();
+        if (playerCamera == null)
+            playerCamera = Camera.main;
+
+        cameraViewManager = CameraViewManager.Instance;
     }
 
     void Update()
     {
-        if (Time.timeScale == 0) return;
-        if (playerCamera == null) return;
-        if (cameraViewManager != null && cameraViewManager.IsSpecialViewActive) return;
+        // R/T проверяем ВСЕГДА
+        CheckViewSelection();
 
-        Ray ray = playerCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-        RaycastHit hit;
+        // блокируем только движение/взаимодействие
+        if (Time.timeScale == 0f)
+            return;
 
-        if (Physics.Raycast(ray, out hit, interactRange, interactableLayer))
+        if (cameraViewManager != null &&
+           cameraViewManager.IsSpecialViewActive)
+            return;
+
+        CheckServerInteraction();
+    }
+
+    void CheckServerInteraction()
+    {
+        Ray ray =
+            playerCamera.ViewportPointToRay(
+                new Vector3(.5f, .5f, 0)
+            );
+
+        if (Physics.Raycast(
+            ray,
+            out RaycastHit hit,
+            interactRange,
+            interactableLayer))
         {
-            if (hit.transform == null) return;
+            ServerBoxController box =
+                hit.collider.GetComponentInParent<ServerBoxController>();
 
-            if (hit.transform.CompareTag("ServerBox"))
+            if (box != null)
             {
-                targetBox = hit.transform.GetComponent<ServerBoxController>();
-                Open openScript = hit.transform.GetComponent<Open>();
-
-                // Отладка - проверяем, что нашли
-                Debug.Log($"Open найден: {openScript != null}, openserverbox = {openScript?.openserverbox}");
-
                 if (Input.GetKeyDown(KeyCode.E))
                 {
-                    if (targetBox != null && openScript != null && openScript.openserverbox)
+                    if (box.IsDoorOpen())
                     {
-                        Debug.Log("Вызов OpenBoxUI");
-                        targetBox.OpenBoxUI();
-                    }
-                    else
-                    {
-                        Debug.Log($"Не могу открыть UI: targetBox={targetBox != null}, openScript={openScript != null}, openserverbox={openScript?.openserverbox}");
+                        box.OpenBoxUI();
+
+                        waitingForViewChoice = true;
+
+                        Debug.Log("Нажмите R или T");
                     }
                 }
             }
         }
     }
 
-    public void ClearCurrentSelection()
+    void CheckViewSelection()
     {
-        if (currentOutline != null)
+        if (!waitingForViewChoice)
+            return;
+
+        if (Input.GetKeyDown(KeyCode.R))
         {
-            currentOutline.enabled = false;
-            currentOutline = null;
+            Debug.Log("R detected");
+
+            cameraViewManager.SetView("R");
+
+            waitingForViewChoice = false;
+
+            if (UIManager.Instance != null)
+                UIManager.Instance.HideMenu();
+
+            Time.timeScale = 1f;
         }
-        targetBox = null;
+
+        if (Input.GetKeyDown(KeyCode.T))
+        {
+            Debug.Log("T detected");
+
+            cameraViewManager.SetView("T");
+
+            waitingForViewChoice = false;
+
+            if (UIManager.Instance != null)
+                UIManager.Instance.HideMenu();
+
+            Time.timeScale = 1f;
+        }
     }
 }

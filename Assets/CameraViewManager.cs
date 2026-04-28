@@ -1,106 +1,84 @@
 using UnityEngine;
-using UnityEngine.EventSystems;
 
 public class CameraViewManager : MonoBehaviour
 {
-    public static CameraViewManager Instance;
+    public static CameraViewManager Instance { get; private set; }
 
-    [Header("Настройки камеры")]
-    public Camera mainCamera;
-    public Transform viewpoint_R;
-    public Transform viewpoint_T;
-
-    public float smoothSpeed = 5f;
+    [Header("Камера")]
+    [SerializeField] private Camera mainCamera;
+    [SerializeField] private Transform viewpoint_R;
+    [SerializeField] private Transform viewpoint_T;
+    [SerializeField] private float smoothSpeed = 5f;
 
     private Vector3 originalPosition;
     private Quaternion originalRotation;
-    private bool isSpecialViewActive = false;
-    private string currentViewType = "";  // "R" или "T"
 
     private Vector3 targetPosition;
     private Quaternion targetRotation;
+
+    private bool isSpecialViewActive;
+    private enum ViewType { None, R, T }
+    private ViewType currentView = ViewType.None;
+
     private mouse playerMouse;
 
-    // Публичные свойства
     public bool IsSpecialViewActive => isSpecialViewActive;
-    public bool IsViewR => currentViewType == "R";  // Проверка, активен ли вид R
-    public bool IsViewT => currentViewType == "T";  // Проверка, активен ли вид T
+    public bool IsViewR => currentView == ViewType.R;
+    public bool IsViewT => currentView == ViewType.T;
 
-    [Header("Настройки Raycast")]
-    public LayerMask clickableLayersR; // Слои для кликов в режиме R
-    public LayerMask clickableLayersT; // Слои для кликов в режиме T
-
-    void Awake()
+    private void Awake()
     {
         if (Instance == null) Instance = this;
-        else Destroy(gameObject);
+        else
+        {
+            Destroy(gameObject);
+            return;
+        }
     }
 
-    void Start()
+    private void Start()
     {
-        if (mainCamera == null) mainCamera = Camera.main;
+        if (mainCamera == null)
+            mainCamera = Camera.main;
+
         playerMouse = FindObjectOfType<mouse>();
 
-        // Добавляем PhysicsRaycaster
-        if (mainCamera.GetComponent<UnityEngine.EventSystems.PhysicsRaycaster>() == null)
+        if (mainCamera != null)
         {
-            mainCamera.gameObject.AddComponent<UnityEngine.EventSystems.PhysicsRaycaster>();
-            Debug.Log("Добавлен PhysicsRaycaster на камеру");
+            originalPosition = mainCamera.transform.position;
+            originalRotation = mainCamera.transform.rotation;
         }
-
-        // Настраиваем слои для Raycast
-        int hardDriveLayer = LayerMask.NameToLayer("BrokenHardDrive");
-        int componentLayer = LayerMask.NameToLayer("ClickableComponent");
-
-        if (hardDriveLayer != -1)
-            clickableLayersR = 1 << hardDriveLayer;
-
-        if (componentLayer != -1)
-            clickableLayersT = 1 << componentLayer;
-
-        originalPosition = mainCamera.transform.position;
-        originalRotation = mainCamera.transform.rotation;
     }
 
-    void Update()
+    private void Update()
     {
-        if (Time.timeScale == 0)
+        if (isSpecialViewActive && mainCamera != null)
         {
-            if (Input.GetKeyDown(KeyCode.R))
-            {
-                SetView("R");
-            }
-            else if (Input.GetKeyDown(KeyCode.T))
-            {
-                SetView("T");
-            }
+            mainCamera.transform.position = Vector3.Lerp(
+                mainCamera.transform.position,
+                targetPosition,
+                Time.unscaledDeltaTime * smoothSpeed);
+
+            mainCamera.transform.rotation = Quaternion.Lerp(
+                mainCamera.transform.rotation,
+                targetRotation,
+                Time.unscaledDeltaTime * smoothSpeed);
         }
 
+        UpdateCursorState();
+
+        if (Input.GetKeyDown(KeyCode.Escape) && isSpecialViewActive)
+            ExitSpecialView();
+    }
+
+    private void UpdateCursorState()
+    {
         if (isSpecialViewActive)
         {
-            mainCamera.transform.position = Vector3.Lerp(mainCamera.transform.position, targetPosition, Time.deltaTime * smoothSpeed);
-            mainCamera.transform.rotation = Quaternion.Lerp(mainCamera.transform.rotation, targetRotation, Time.deltaTime * smoothSpeed);
-        }
-
-        HandleCursorForClicking();
-    }
-
-    void HandleCursorForClicking()
-    {
-        // В режиме R показываем курсор для кликов по жёстким дискам
-        if (isSpecialViewActive && IsViewR)
-        {
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
         }
-        // В режиме T курсор показываем
-        else if (isSpecialViewActive && IsViewT)
-        {
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-        }
-        // В обычном режиме
-        else if (!isSpecialViewActive)
+        else
         {
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
@@ -109,52 +87,32 @@ public class CameraViewManager : MonoBehaviour
 
     public void SetView(string viewType)
     {
-        ClearAllOutlines();
+        if (mainCamera == null)
+            mainCamera = Camera.main;
 
-        isSpecialViewActive = true;
-        currentViewType = viewType;
-
-        // Настраиваем PhysicsRaycaster для нужных слоёв
-        PhysicsRaycaster raycaster = mainCamera.GetComponent<PhysicsRaycaster>();
-        if (raycaster != null)
-        {
-            if (viewType == "R")
-            {
-                raycaster.eventMask = clickableLayersR;
-                Debug.Log("Raycast настроен на слой BrokenHardDrive");
-            }
-            else if (viewType == "T")
-            {
-                raycaster.eventMask = clickableLayersT;
-                Debug.Log("Raycast настроен на слой BrokenComponent");
-            }
-        }
-
-        ClearAllOutlines();
-
-        isSpecialViewActive = true;
-        currentViewType = viewType;
+        if (mainCamera == null)
+            return;
 
         if (viewType == "R")
         {
             if (viewpoint_R == null) return;
+            currentView = ViewType.R;
             targetPosition = viewpoint_R.position;
             targetRotation = viewpoint_R.rotation;
-
-            // Включаем курсор для кликов по жёстким дискам
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
         }
         else if (viewType == "T")
         {
             if (viewpoint_T == null) return;
+            currentView = ViewType.T;
             targetPosition = viewpoint_T.position;
             targetRotation = viewpoint_T.rotation;
-
-            // Включаем курсор для кликов по  компонентам
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
         }
+        else
+        {
+            return;
+        }
+
+        isSpecialViewActive = true;
 
         if (playerMouse != null)
             playerMouse.SetSpecialView(true);
@@ -162,27 +120,26 @@ public class CameraViewManager : MonoBehaviour
         if (UIManager.Instance != null)
             UIManager.Instance.HideMenu();
 
-        Time.timeScale = 1;
-
-        Debug.Log($"Активирован режим {viewType}");
+        Time.timeScale = 1f;
+        Debug.Log($"[CameraViewManager] Активирован режим {viewType}");
     }
-
 
     public void ExitSpecialView()
     {
         isSpecialViewActive = false;
-        currentViewType = "";
+        currentView = ViewType.None;
 
         if (playerMouse != null)
             playerMouse.SetSpecialView(false);
 
-        mainCamera.transform.position = originalPosition;
-        mainCamera.transform.rotation = originalRotation;
+        if (mainCamera != null)
+        {
+            mainCamera.transform.position = originalPosition;
+            mainCamera.transform.rotation = originalRotation;
+        }
 
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-
-        Debug.Log("Выход из спецрежима");
+        UpdateCursorState();
+        Debug.Log("[CameraViewManager] Выход из спецрежима");
     }
 
     public void UpdateOriginalPosition(Vector3 newPos, Quaternion newRot)
@@ -192,24 +149,5 @@ public class CameraViewManager : MonoBehaviour
             originalPosition = newPos;
             originalRotation = newRot;
         }
-    }
-
-    void ClearAllOutlines()
-    {
-        // Находим все объекты с Outline
-        Outline[] allOutlines = FindObjectsOfType<Outline>();
-        foreach (Outline outline in allOutlines)
-        {
-            outline.enabled = false;
-        }
-
-        // Также сбрасываем выделение у PlayerInteraction
-        PlayerInteraction playerInteraction = FindObjectOfType<PlayerInteraction>();
-        if (playerInteraction != null)
-        {
-            playerInteraction.ClearCurrentSelection();
-        }
-
-        Debug.Log("Все подсветки сброшены");
     }
 }

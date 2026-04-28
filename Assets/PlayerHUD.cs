@@ -1,47 +1,56 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
-using System.Collections;
 
 public class PlayerHUD : MonoBehaviour
 {
     public static PlayerHUD Instance;
 
-    [Header("UI Элементы")]
-    public GameObject notificationPanel;   // Панель с фоном
-    public Text notificationText;          // Текст уведомления
+    [SerializeField] private GameObject playerHUDPanel;
+    [SerializeField] private Text failureText;
 
-    private Coroutine currentNotification;
+    [SerializeField] private float showTime = 5f;
+
+    Coroutine currentRoutine;
 
     void Awake()
     {
-        if (Instance == null) Instance = this;
-        else Destroy(gameObject);
-        
-        if (notificationPanel != null)
-            notificationPanel.SetActive(false);
+        Instance = this;
     }
 
-    /// <summary>
-    /// Показать временное сообщение в HUD игрока
-    /// </summary>
-    /// <param name="message">Текст сообщения</param>
-    /// <param name="duration">Длительность в секундах</param>
-    public void ShowMessage(string message, float duration = 3f)
+    void Start()
     {
-        if (currentNotification != null)
-            StopCoroutine(currentNotification);
-        
-        currentNotification = StartCoroutine(DisplayMessage(message, duration));
+        // старт — пусто
+        if (playerHUDPanel != null)
+            playerHUDPanel.SetActive(false);
     }
 
-    IEnumerator DisplayMessage(string message, float duration)
+    public void ShowFailureMessage()
     {
-        notificationText.text = message;
-        notificationPanel.SetActive(true);
-        
-        yield return new WaitForSeconds(duration);
-        
-        notificationPanel.SetActive(false);
-        currentNotification = null;
+        if (currentRoutine != null)
+            StopCoroutine(currentRoutine);
+
+        currentRoutine =
+            StartCoroutine(
+                ShowTemporaryMessage()
+            );
+    }
+
+    IEnumerator ShowTemporaryMessage()
+    {
+        if (playerHUDPanel != null)
+            playerHUDPanel.SetActive(true);
+
+        if (failureText != null)
+            failureText.text = "Новая поломка";
+
+        Debug.Log("Показ уведомления");
+
+        yield return new WaitForSeconds(showTime);
+
+        if (playerHUDPanel != null)
+            playerHUDPanel.SetActive(false);
+
+        currentRoutine = null;
     }
 }

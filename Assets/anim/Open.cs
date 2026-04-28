@@ -1,100 +1,95 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Open : MonoBehaviour
 {
+    private static readonly int OpenHash = Animator.StringToHash("Open");
+
+    [SerializeField] private float openDistance = 5f;
+
     private Animator anim;
-    public float openDistance = 5f;
     private Transform player;
     private Outline outlineComponent;
-    private UIManager uiManager;
     private CameraViewManager cameraViewManager;
-    public bool openserverbox;
+    private UIManager uiManager;
+    private Camera mainCamera;
 
-    void Start()
+    public bool IsOpen => doorOpen;
+
+    private bool doorOpen = false;
+
+    private void Start()
     {
         anim = GetComponent<Animator>();
-        player = GameObject.FindGameObjectWithTag("Player").transform;
-        anim.SetBool("Open", true);
         outlineComponent = GetComponent<Outline>();
-        cameraViewManager = FindObjectOfType<CameraViewManager>();
-        openserverbox = !(anim.GetBool("Open"));
+        cameraViewManager = CameraViewManager.Instance ?? FindObjectOfType<CameraViewManager>();
+        uiManager = UIManager.Instance;
+        player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        mainCamera = Camera.main;
+
+        doorOpen = false;
+        anim.SetBool("Open", !doorOpen);
 
         if (outlineComponent != null)
-        {
             outlineComponent.enabled = false;
-        }
-        else
-        {
-            Debug.LogError("Outline component not found on ");
-        }
-
-        uiManager = UIManager.Instance;
     }
 
-    void Update()
+    private void Update()
     {
-        if (player == null || outlineComponent == null) return;
+        if (player == null || anim == null)
+            return;
+
+        if (cameraViewManager != null && cameraViewManager.IsSpecialViewActive)
+        {
+            if (outlineComponent != null)
+                outlineComponent.enabled = false;
+            return;
+        }
+
+        if (mainCamera == null)
+            mainCamera = Camera.main;
+
+        if (mainCamera == null)
+            return;
 
         float distance = Vector3.Distance(transform.position, player.position);
-
-        // Создаем луч из центра экрана
-        Ray ray = Camera.main.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2, 0));
-        RaycastHit hit;
-
         bool isLookingAtDoor = false;
 
-        if (distance < openDistance && Physics.Raycast(ray, out hit, openDistance))
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        if (distance <= openDistance && Physics.Raycast(ray, out RaycastHit hit, openDistance))
         {
-            if (hit.collider.gameObject == gameObject)
+            if (hit.collider != null && hit.collider.GetComponentInParent<Open>() == this)
             {
                 isLookingAtDoor = true;
 
-                // Включаем обводку при наведении
-                if (!outlineComponent.enabled && !cameraViewManager.IsSpecialViewActive)
-                {
+                if (outlineComponent != null)
                     outlineComponent.enabled = true;
-                }
 
-                // Открытие/закрытие по клику
                 if (Input.GetMouseButtonDown(0))
                 {
-                    Debug.Log($"ЛКМ на объекте {gameObject.name}");
-
-                    if ((uiManager != null && uiManager.IsMenuOpen) || cameraViewManager.IsSpecialViewActive)
+                    if ((uiManager != null && uiManager.IsMenuOpen) ||
+                        (cameraViewManager != null && cameraViewManager.IsSpecialViewActive))
                     {
-                        Debug.Log("Клик заблокирован: меню открыто или спецрежим");
                         return;
                     }
 
-                    bool isOpen = anim.GetBool("Open");
-                    Debug.Log($"Текущее состояние анимации isOpen = {isOpen}");
-
-                    anim.SetBool("Open", !isOpen);
-                    Debug.Log($"Новое состояние анимации = {!isOpen}");
-
-                    // Проверяем наличие ServerBoxController
-                    ServerBoxController serverBox = GetComponent<ServerBoxController>();
-                    Debug.Log($"ServerBoxController найден: {serverBox != null}");
-
-                    if (serverBox != null)
-                    {
-                        openserverbox = isOpen;
-                        Debug.Log($"!!! openserverbox изменён на {openserverbox} !!!");
-                    }
-                    else
-                    {
-                        Debug.Log("Это не ящик (ServerBoxController отсутствует)");
-                    }
+                    ToggleDoor();
                 }
             }
         }
 
-        // Выключаем обводку, если не смотрим
-        if (!isLookingAtDoor && outlineComponent.enabled)
-        {
+        if (!isLookingAtDoor && outlineComponent != null)
             outlineComponent.enabled = false;
-        }
+    }
+
+    private void ToggleDoor()
+    {
+        doorOpen = !doorOpen;
+
+        anim.SetBool("Open", !doorOpen);
+
+        if (doorOpen)
+            Debug.Log("Дверь открыта");
+        else
+            Debug.Log("Дверь закрыта");
     }
 }

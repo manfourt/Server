@@ -1,218 +1,292 @@
-using UnityEngine;
+using System;
 using System.Collections.Generic;
-
-[System.Serializable]
-public class ComponentData
-{
-    public KeyCode key;            // клавиша для удаления
-    public string tag;             // тег объекта в сцене
-    public bool isBroken;          // сломан ли компонент
-    public bool existsInScene;     // присутствует ли объект в сцене
-    public bool isHardDrive;       // является ли жёстким диском (для проверки)
-    public string componentId;     // ID жёсткого диска (1-6)
-}
+using UnityEngine;
 
 public class BrokenComponentManager : MonoBehaviour
 {
-    [Header("Компоненты для удаления")]
-    public List<ComponentData> components = new List<ComponentData>();
+    public static BrokenComponentManager Instance { get; private set; }
+
+    public enum ComponentKind
+    {
+        Normal,
+        HardDrive
+    }
+
+    [Serializable]
+    public class ComponentData
+    {
+        public string componentId;
+        public string sceneTag;
+        public ComponentKind kind = ComponentKind.Normal;
+
+        [Tooltip("Сломан ли компонент")]
+        public bool isBroken;
+
+        [Tooltip("Находится ли объект сейчас в сцене (true) или скрыт (false)")]
+        public bool isInScene = true;
+
+        [HideInInspector] public GameObject sceneObject;
+    }
+
+    [Header("Все компоненты сервера")]
+    [SerializeField] private List<ComponentData> components = new List<ComponentData>();
+
+    [Header("Слои для разных режимов")]
+    [SerializeField] private string normalLayerName = "BrokenComponent";
+    [SerializeField] private string hardDriveLayerName = "BrokenHardDrive";
+
+    [Header("Автопоиск объектов по тегам")]
+    [SerializeField] private bool autoBindOnStart = true;
 
     private CameraViewManager cameraViewManager;
 
-    void Start()
+    public IReadOnlyList<ComponentData> Components => components;
+
+    private void Awake()
+    {
+        if (Instance == null) Instance = this;
+        else
+        {
+            Destroy(gameObject);
+            return;
+        }
+    }
+
+    private void Start()
     {
         cameraViewManager = FindObjectOfType<CameraViewManager>();
 
         if (components == null || components.Count == 0)
-        {
             InitializeDefaultComponents();
-        }
 
-        // Проверяем наличие объектов в сцене и добавляем компоненты Clickable
-        foreach (var comp in components)
-        {
-            Debug.Log($"Компонент: tag='{comp.tag}', isHardDrive={comp.isHardDrive}, componentId='{comp.componentId}'");
-
-            if (!string.IsNullOrEmpty(comp.tag))
-            {
-                GameObject obj = GameObject.FindGameObjectWithTag(comp.tag);
-                comp.existsInScene = (obj != null);
-
-                if (obj != null)
-                {
-                    AddClickableComponent(obj, comp);
-                }
-
-                if (obj == null)
-                {
-                    Debug.Log($"Объект с тегом {comp.tag} не найден в сцене");
-                }
-            }
-        }
+        if (autoBindOnStart)
+            BindAllSceneObjects();
     }
 
-    void AddClickableComponent(GameObject obj, ComponentData comp)
-    {
-        HardDriveClickable clickable = obj.GetComponent<HardDriveClickable>();
-        if (clickable == null)
-        {
-            clickable = obj.AddComponent<HardDriveClickable>();
-        }
-
-        // Устанавливаем ID жёсткого диска
-        clickable.componentId = comp.componentId;
-        clickable.isHardDrive = comp.isHardDrive;
-
-        // Настраиваем коллайдер для кликов
-        Collider col = obj.GetComponent<Collider>();
-        if (col == null)
-        {
-            col = obj.AddComponent<BoxCollider>();
-            Debug.Log($"Добавлен коллайдер для {comp.tag}");
-        }
-
-        // Настраиваем слой для raycast
-        string layerName = comp.isHardDrive ? "BrokenHardDrive" : "BrokenCompnent";
-        int targetLayer = LayerMask.NameToLayer(layerName);
-        if (targetLayer != -1)
-        {
-            obj.layer = targetLayer;
-        }
-        else
-        {
-            Debug.LogWarning($"Слой {layerName} не найден! Используйте слой по умолчанию");
-            obj.layer = 0; // Default layer
-        }
-
-
-        // Убеждаемся, что у объекта есть компонент Outline
-        Outline outline = obj.GetComponent<Outline>();
-        if (outline == null)
-        {
-            outline = obj.AddComponent<Outline>();
-        }
-        outline.enabled = false;
-
-        Debug.Log($"Добавлен компонент кликабельности для {comp.tag} (ID: {comp.componentId}, тип: {(comp.isHardDrive ? "HDD" : "Component")}, existsInScene= {(comp.existsInScene)})");
-    }
-
-    void InitializeDefaultComponents()
+    private void InitializeDefaultComponents()
     {
         components = new List<ComponentData>
         {
-            // Обычные компоненты (удаляются в режиме T)
-            new ComponentData { key = KeyCode.Alpha1, tag = "Fan1", isBroken = true, existsInScene = false, isHardDrive = false, componentId = "Fan1" },
-            new ComponentData { key = KeyCode.Alpha2, tag = "Fan2", isBroken = true, existsInScene = false, isHardDrive = false, componentId = "Fan2" },
-            new ComponentData { key = KeyCode.Alpha3, tag = "PSU", isBroken = true, existsInScene = false, isHardDrive = false, componentId = "PSU" },
-            new ComponentData { key = KeyCode.Alpha4, tag = "Cooler", isBroken = true, existsInScene = false, isHardDrive = false, componentId = "Cooler" },
-            new ComponentData { key = KeyCode.Alpha5, tag = "CPU", isBroken = true, existsInScene = false, isHardDrive = false, componentId = "CPU" },
-            new ComponentData { key = KeyCode.Alpha6, tag = "RAM1", isBroken = true, existsInScene = false, isHardDrive = false, componentId = "RAM1" },
-            new ComponentData { key = KeyCode.Alpha7, tag = "RAM2", isBroken = true, existsInScene = false, isHardDrive = false, componentId = "RAM2" },
-            new ComponentData { key = KeyCode.Alpha8, tag = "RAM3", isBroken = true, existsInScene = false, isHardDrive = false, componentId = "RAM3" },
-            new ComponentData { key = KeyCode.Alpha9, tag = "RAM4", isBroken = true, existsInScene = false, isHardDrive = false, componentId = "RAM4" },
+            new ComponentData { componentId = "Fan1",     sceneTag = "Fan1",     kind = ComponentKind.Normal,    isBroken = false, isInScene = true },
+            new ComponentData { componentId = "Fan2",     sceneTag = "Fan2",     kind = ComponentKind.Normal,    isBroken = false, isInScene = true },
+            new ComponentData { componentId = "PSU",      sceneTag = "PSU",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true },
+            new ComponentData { componentId = "Cooler",   sceneTag = "Cooler",   kind = ComponentKind.Normal,    isBroken = false, isInScene = true },
+            new ComponentData { componentId = "CPU",      sceneTag = "CPU",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true },
+            new ComponentData { componentId = "RAM1",     sceneTag = "RAM1",     kind = ComponentKind.Normal,    isBroken = false, isInScene = true },
+            new ComponentData { componentId = "RAM2",     sceneTag = "RAM2",     kind = ComponentKind.Normal,    isBroken = false, isInScene = true },
+            new ComponentData { componentId = "RAM3",     sceneTag = "RAM3",     kind = ComponentKind.Normal,    isBroken = false, isInScene = true },
+            new ComponentData { componentId = "RAM4",     sceneTag = "RAM4",     kind = ComponentKind.Normal,    isBroken = false, isInScene = true },
 
-            // Жёсткие диски (удаляются в режиме R)
-            new ComponentData { tag = "Hard_drive1", isBroken = true, existsInScene = false, isHardDrive = true, componentId = "1" },
-            new ComponentData { tag = "Hard_drive2", isBroken = true, existsInScene = false, isHardDrive = true, componentId = "2" },
-            new ComponentData { tag = "Hard_drive3", isBroken = true, existsInScene = false, isHardDrive = true, componentId = "3" },
-            new ComponentData { tag = "Hard_drive4", isBroken = true, existsInScene = false, isHardDrive = true, componentId = "4" },
-            new ComponentData { tag = "Hard_drive5", isBroken = true, existsInScene = false, isHardDrive = true, componentId = "5" },
-            new ComponentData { tag = "Hard_drive6", isBroken = true, existsInScene = false, isHardDrive = true, componentId = "6" }
+            new ComponentData { componentId = "Hard_drive1",        sceneTag = "Hard_drive1", kind = ComponentKind.HardDrive, isBroken = false, isInScene = true },
+            new ComponentData { componentId = "Hard_drive2",        sceneTag = "Hard_drive2", kind = ComponentKind.HardDrive, isBroken = false, isInScene = true },
+            new ComponentData { componentId = "Hard_drive3",        sceneTag = "Hard_drive3", kind = ComponentKind.HardDrive, isBroken = false, isInScene = true },
+            new ComponentData { componentId = "Hard_drive4",        sceneTag = "Hard_drive4", kind = ComponentKind.HardDrive, isBroken = false, isInScene = true },
+            new ComponentData { componentId = "Hard_drive5",        sceneTag = "Hard_drive5", kind = ComponentKind.HardDrive, isBroken = false, isInScene = true },
+            new ComponentData { componentId = "Hard_drive6",        sceneTag = "Hard_drive6", kind = ComponentKind.HardDrive, isBroken = false, isInScene = true },
         };
-
-
-        Debug.Log("Инициализированы компоненты по умолчанию");
     }
 
-    public bool DeleteComponent(string componentId)
+    private void BindAllSceneObjects()
     {
-        // Находим компонент с нужным ID
-        ComponentData targetComp = components.Find(c => !c.isHardDrive && c.componentId == componentId);
-
-        if (targetComp == null)
+        foreach (var data in components)
         {
-            Debug.LogError($"Компонент с ID {componentId} не найден в списке компонентов");
-            return false;
+            BindSceneObject(data);
         }
-
-        if (!targetComp.existsInScene)
-        {
-            Debug.Log($"Компонент {targetComp.tag} уже удалён");
-            return false;
-        }
-
-        if (!targetComp.isBroken)
-        {
-            Debug.Log($"Компонент {targetComp.tag} не сломан, удалять нельзя");
-            return false;
-        }
-
-        // Проверяем, что мы в режиме T
-        if (cameraViewManager == null || !cameraViewManager.IsSpecialViewActive || !cameraViewManager.IsViewT)
-        {
-            Debug.Log("Обычные компоненты удаляются только в режиме T");
-            return false;
-        }
-
-        // Удаляем объект из сцены
-        GameObject obj = GameObject.FindGameObjectWithTag(targetComp.tag);
-        if (obj != null)
-        {
-            Destroy(obj);
-            targetComp.existsInScene = false;
-            Debug.Log($"Удалён {targetComp.tag} (компонент {componentId}) кликом мыши в режиме T");
-            return true;
-        }
-
-        return false;
-    }
-    
-    public bool DeleteHardDrive(string hardDriveId)
-    {
-        // Находим компонент с нужным ID
-        ComponentData targetComp = components.Find(c => c.isHardDrive && c.componentId == hardDriveId);
-
-        if (targetComp == null)
-        {
-            Debug.LogError($"Жёсткий диск с ID {hardDriveId} не найден в списке компонентов");
-            return false;
-        }
-
-        if (!targetComp.existsInScene)
-        {
-            Debug.Log($"Жёсткий диск {targetComp.tag} уже удалён");
-            return false;
-        }
-
-        if (!targetComp.isBroken)
-        {
-            Debug.Log($"Жёсткий диск {targetComp.tag} не сломан, удалять нельзя");
-            return false;
-        }
-
-        // Проверяем, что мы в режиме R
-        if (cameraViewManager == null || !cameraViewManager.IsSpecialViewActive || !cameraViewManager.IsViewR)
-        {
-            Debug.Log("Удаление жёстких дисков доступно только в режиме R");
-            return false;
-        }
-
-        // Удаляем объект из сцены
-        GameObject obj = GameObject.FindGameObjectWithTag(targetComp.tag);
-        if (obj != null)
-        {
-            Destroy(obj);
-            targetComp.existsInScene = false;
-            Debug.Log($"Удалён {targetComp.tag} (жёсткий диск {hardDriveId}) кликом мыши в режиме R");
-            return true;
-        }
-
-        return false;
     }
 
-
-    void Update()
+    private void BindSceneObject(ComponentData data)
     {
-        
+        if (data == null || string.IsNullOrWhiteSpace(data.sceneTag))
+            return;
+
+        GameObject obj = GameObject.FindGameObjectWithTag(data.sceneTag);
+        data.sceneObject = obj;
+        data.isInScene = obj != null && obj.activeSelf;
+
+        if (obj == null)
+        {
+            Debug.LogWarning($"[BrokenComponentManager] Объект с тегом '{data.sceneTag}' не найден.");
+            return;
+        }
+
+        EnsureSetup(obj, data);
+        ApplyStateToObject(data);
+    }
+
+    private void EnsureSetup(GameObject obj, ComponentData data)
+    {
+        Collider col = obj.GetComponent<Collider>();
+        if (col == null)
+            col = obj.AddComponent<BoxCollider>();
+
+        Outline outline = obj.GetComponent<Outline>();
+        if (outline == null)
+            outline = obj.AddComponent<Outline>();
+        outline.enabled = false;
+
+        ComponentClickable clickable = obj.GetComponent<ComponentClickable>();
+        if (clickable == null)
+            clickable = obj.AddComponent<ComponentClickable>();
+
+        clickable.Initialize(data.componentId, data.kind);
+
+        SetLayer(obj, data.kind);
+    }
+
+    private void SetLayer(GameObject obj, ComponentKind kind)
+    {
+        string layerName = kind == ComponentKind.HardDrive ? hardDriveLayerName : normalLayerName;
+        int layer = LayerMask.NameToLayer(layerName);
+
+        if (layer >= 0)
+        {
+            obj.layer = layer;
+        }
+        else
+        {
+            Debug.LogWarning($"[BrokenComponentManager] Слой '{layerName}' не найден. Объект '{obj.name}' оставлен на Default.");
+            obj.layer = 0;
+        }
+    }
+
+    private void ApplyStateToObject(ComponentData data)
+    {
+        if (data.sceneObject == null)
+            return;
+
+        data.sceneObject.SetActive(data.isInScene);
+
+        Outline outline = data.sceneObject.GetComponent<Outline>();
+        if (outline != null)
+            outline.enabled = false;
+    }
+
+    private ComponentData FindById(string componentId)
+    {
+        return components.Find(c => c.componentId == componentId);
+    }
+
+    public bool CanInteract(ComponentKind kind)
+    {
+        if (cameraViewManager == null)
+            cameraViewManager = FindObjectOfType<CameraViewManager>();
+
+        if (cameraViewManager == null || !cameraViewManager.IsSpecialViewActive)
+            return false;
+
+        return kind == ComponentKind.HardDrive
+            ? cameraViewManager.IsViewR
+            : cameraViewManager.IsViewT;
+    }
+
+    public bool IsBroken(string componentId)
+    {
+        var data = FindById(componentId);
+        return data != null && data.isBroken;
+    }
+
+    public bool IsInScene(string componentId)
+    {
+        var data = FindById(componentId);
+        return data != null && data.isInScene;
+    }
+
+    public bool SetBrokenState(string componentId, bool broken)
+    {
+        var data = FindById(componentId);
+        if (data == null)
+        {
+            Debug.LogWarning($"[BrokenComponentManager] Компонент '{componentId}' не найден.");
+            return false;
+        }
+
+        data.isBroken = broken;
+        return true;
+    }
+
+    public bool TryHideComponent(string componentId)
+    {
+        var data = FindById(componentId);
+        if (data == null)
+        {
+            Debug.LogWarning($"[BrokenComponentManager] Компонент '{componentId}' не найден.");
+            return false;
+        }
+
+        if (!data.isBroken)
+        {
+            Debug.Log($"[BrokenComponentManager] Компонент '{componentId}' не сломан — скрывать нельзя.");
+            return false;
+        }
+
+        if (!CanInteract(data.kind))
+        {
+            Debug.Log($"[BrokenComponentManager] Нельзя удалить '{componentId}' в текущем режиме.");
+            return false;
+        }
+
+        if (!data.isInScene)
+        {
+            Debug.Log($"[BrokenComponentManager] Компонент '{componentId}' уже скрыт.");
+            return false;
+        }
+
+        if (data.sceneObject == null)
+            BindSceneObject(data);
+
+        if (data.sceneObject == null)
+        {
+            Debug.LogWarning($"[BrokenComponentManager] Объект '{data.sceneTag}' не найден в сцене.");
+            return false;
+        }
+
+        data.sceneObject.SetActive(false);
+        data.isInScene = false;
+
+        Outline outline = data.sceneObject.GetComponent<Outline>();
+        if (outline != null)
+            outline.enabled = false;
+
+        Debug.Log($"[BrokenComponentManager] Компонент '{componentId}' скрыт.");
+        return true;
+    }
+
+    public bool TryShowComponent(string componentId, bool brokenState)
+    {
+        var data = FindById(componentId);
+        if (data == null)
+            return false;
+
+        if (data.sceneObject == null)
+            BindSceneObject(data);
+
+        if (data.sceneObject == null)
+            return false;
+
+        data.isBroken = brokenState;
+        data.isInScene = true;
+        data.sceneObject.SetActive(true);
+        ApplyStateToObject(data);
+
+        Debug.Log($"[BrokenComponentManager] Компонент '{componentId}' возвращён в сцену.");
+        return true;
+    }
+
+    public List<ComponentData> GetAvailableForFailure(bool hardDrivesOnly = true)
+    {
+        var result = new List<ComponentData>();
+
+        foreach (var c in components)
+        {
+            if (!c.isInScene) continue;
+            if (c.isBroken) continue;
+
+            if (hardDrivesOnly && c.kind != ComponentKind.HardDrive)
+                continue;
+
+            result.Add(c);
+        }
+
+        return result;
     }
 }

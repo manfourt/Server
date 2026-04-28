@@ -2,26 +2,34 @@ using UnityEngine;
 
 public class UIManager : MonoBehaviour
 {
-    public static UIManager Instance;
-    public GameObject viewSelectionPanel; // Панель с текстом "Нажмите R или T"
-    // Публичное свойство для проверки, открыто ли меню
+    public static UIManager Instance { get; private set; }
+
+    [SerializeField] private GameObject viewSelectionPanel;
+
     public bool IsMenuOpen => viewSelectionPanel != null && viewSelectionPanel.activeSelf;
 
-    void Awake()
+    private void Awake()
     {
         if (Instance == null) Instance = this;
-        else Destroy(gameObject);
+        else
+        {
+            Destroy(gameObject);
+            return;
+        }
 
-        if (viewSelectionPanel) viewSelectionPanel.SetActive(false);
+        if (viewSelectionPanel != null)
+            viewSelectionPanel.SetActive(false);
     }
 
     public void ShowMenu()
     {
-        if (viewSelectionPanel) viewSelectionPanel.SetActive(true);
+        if (viewSelectionPanel != null)
+            viewSelectionPanel.SetActive(true);
     }
 
     public void HideMenu()
     {
-        if (viewSelectionPanel) viewSelectionPanel.SetActive(false);
+        if (viewSelectionPanel != null)
+            viewSelectionPanel.SetActive(false);
     }
 }

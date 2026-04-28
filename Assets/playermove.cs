@@ -1,32 +1,31 @@
 using UnityEngine;
 
+[RequireComponent(typeof(CharacterController))]
 public class playermove : MonoBehaviour
 {
-    public float speed = 5f;
+    [SerializeField] private float speed = 5f;
+
     private CharacterController controller;
     private CameraViewManager cameraViewManager;
 
-    void Start()
+    private void Start()
     {
         controller = GetComponent<CharacterController>();
-        cameraViewManager = FindObjectOfType<CameraViewManager>();
+        cameraViewManager = CameraViewManager.Instance ?? FindObjectOfType<CameraViewManager>();
     }
 
-    void Update()
+    private void Update()
     {
-        // ≈сли врем€ остановлено (меню €щика открыто), блокируем движение
-        if (Time.timeScale == 0) return;
+        if (Time.timeScale == 0f)
+            return;
 
-        // ≈сли активен режим просмотра - блокируем движение
-        if (cameraViewManager != null && cameraViewManager.IsSpecialViewActive) return;
+        if (cameraViewManager != null && cameraViewManager.IsSpecialViewActive)
+            return;
 
         float horizontalInput = Input.GetAxis("Horizontal");
         float verticalInput = Input.GetAxis("Vertical");
 
-        // Ќаправление движени€
         Vector3 move = transform.right * horizontalInput + transform.forward * verticalInput;
-
-        // ѕримен€ем движение через Character Controller
         controller.Move(move * speed * Time.deltaTime);
     }
 }
