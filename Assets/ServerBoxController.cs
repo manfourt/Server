@@ -2,6 +2,10 @@ using UnityEngine;
 
 public class ServerBoxController : MonoBehaviour
 {
+    [Header("Id стойки и сервера")]
+    [SerializeField] public int servId;
+    [SerializeField] public int rackId;
+
     private Open door;
 
     private void Awake()

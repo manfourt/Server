@@ -6,9 +6,10 @@ public class CameraViewManager : MonoBehaviour
 
     [Header("Камера")]
     [SerializeField] private Camera mainCamera;
-    [SerializeField] private Transform viewpoint_R;
-    [SerializeField] private Transform viewpoint_T;
     [SerializeField] private float smoothSpeed = 5f;
+
+    private Transform viewpoint_R;
+    private Transform viewpoint_T;
 
     private Vector3 originalPosition;
     private Quaternion originalRotation;
@@ -85,7 +86,7 @@ public class CameraViewManager : MonoBehaviour
         }
     }
 
-    public void SetView(string viewType)
+    public void SetView(string viewType, int servId, int rackId)
     {
         if (mainCamera == null)
             mainCamera = Camera.main;
@@ -95,6 +96,7 @@ public class CameraViewManager : MonoBehaviour
 
         if (viewType == "R")
         {
+            viewpoint_R = GameObject.Find($"ServerRack_{rackId}/ServerBox_{servId}/ViewPoint_R").transform;
             if (viewpoint_R == null) return;
             currentView = ViewType.R;
             targetPosition = viewpoint_R.position;
@@ -102,6 +104,7 @@ public class CameraViewManager : MonoBehaviour
         }
         else if (viewType == "T")
         {
+            viewpoint_T = GameObject.Find($"ServerRack_{rackId}/ServerBox_{servId}/ViewPoint_T").transform;
             if (viewpoint_T == null) return;
             currentView = ViewType.T;
             targetPosition = viewpoint_T.position;

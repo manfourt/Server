@@ -58,7 +58,7 @@ public class FailureGenerator : MonoBehaviour
         BrokenComponentManager.ComponentData selected = available[Random.Range(0, available.Count)];
         brokenComponentManager.SetBrokenState(selected.componentId, true);
 
-        string message = $"{failurePrefix}: {selected.componentId}";
+        string message = BuildFailureMessage(selected);
         Debug.Log($"[FailureGenerator] {message}");
 
         if (MonitorUIManager.Instance != null)
@@ -68,6 +68,20 @@ public class FailureGenerator : MonoBehaviour
         {
             PlayerHUD.Instance.ShowFailureMessage();
         }
+    }
+
+    private string BuildFailureMessage(BrokenComponentManager.ComponentData comp)
+    {
+        // Базовое описание отказа
+        string baseMessage = comp.failureType;
+
+        // Добавляем номер компонента, если их несколько в сервере
+        if (comp.nmbComp > 0)
+            baseMessage += $" №{comp.nmbComp}";
+
+        // Уточняем расположение
+        string location = $"в сервере {comp.nmbServ} {comp.nmbRack}-й стойки!";
+        return $"{baseMessage} {location}";
     }
 
     public bool IsBroken(string componentId)

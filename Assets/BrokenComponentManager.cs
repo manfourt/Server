@@ -26,13 +26,19 @@ public class BrokenComponentManager : MonoBehaviour
         public bool isInScene = true;
 
         [HideInInspector] public GameObject sceneObject;
+
+        // Новые поля для адресации и сообщения об ошибке
+        public int nmbRack;      // Номер стойки (1,2,...)
+        public int nmbServ;      // Номер сервера в стойке (1,2,...)
+        public int nmbComp;      // Номер компонента в сервере (0, если один, иначе 1,2,...)
+        public string failureType; // Читаемый тип отказа, например "Отказ блока питания"
     }
 
     [Header("Все компоненты сервера")]
     [SerializeField] private List<ComponentData> components = new List<ComponentData>();
 
     [Header("Слои для разных режимов")]
-    [SerializeField] private string normalLayerName = "BrokenComponent";
+    [SerializeField] private string normalLayerName = "BrokenCompnent";
     [SerializeField] private string hardDriveLayerName = "BrokenHardDrive";
 
     [Header("Автопоиск объектов по тегам")]
@@ -67,22 +73,41 @@ public class BrokenComponentManager : MonoBehaviour
     {
         components = new List<ComponentData>
         {
-            new ComponentData { componentId = "Fan1",     sceneTag = "Fan1",     kind = ComponentKind.Normal,    isBroken = false, isInScene = true },
-            new ComponentData { componentId = "Fan2",     sceneTag = "Fan2",     kind = ComponentKind.Normal,    isBroken = false, isInScene = true },
-            new ComponentData { componentId = "PSU",      sceneTag = "PSU",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true },
-            new ComponentData { componentId = "Cooler",   sceneTag = "Cooler",   kind = ComponentKind.Normal,    isBroken = false, isInScene = true },
-            new ComponentData { componentId = "CPU",      sceneTag = "CPU",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true },
-            new ComponentData { componentId = "RAM1",     sceneTag = "RAM1",     kind = ComponentKind.Normal,    isBroken = false, isInScene = true },
-            new ComponentData { componentId = "RAM2",     sceneTag = "RAM2",     kind = ComponentKind.Normal,    isBroken = false, isInScene = true },
-            new ComponentData { componentId = "RAM3",     sceneTag = "RAM3",     kind = ComponentKind.Normal,    isBroken = false, isInScene = true },
-            new ComponentData { componentId = "RAM4",     sceneTag = "RAM4",     kind = ComponentKind.Normal,    isBroken = false, isInScene = true },
+            // ===== Сервер 1 (nmbRack=1, nmbServ=1) =====
+            new ComponentData { componentId = "Fan_1_1_1",   sceneTag = "Fan",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 1, nmbComp = 1, failureType = "Отказ вентилятора" },
+            new ComponentData { componentId = "Fan_1_1_2",   sceneTag = "Fan",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 1, nmbComp = 2, failureType = "Отказ вентилятора" },
+            new ComponentData { componentId = "PSU_1_1",     sceneTag = "PSU",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 1, nmbComp = 0, failureType = "Отказ блока питания" },
+            new ComponentData { componentId = "Cooling_1_1", sceneTag = "Cooling",  kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 1, nmbComp = 0, failureType = "Отказ системы охлаждения" },
+            new ComponentData { componentId = "CPU_1_1",     sceneTag = "CPU",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 1, nmbComp = 0, failureType = "Отказ процессора" },
+            new ComponentData { componentId = "RAM_1_1_1",   sceneTag = "RAM",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 1, nmbComp = 1, failureType = "Сбой оперативной памяти" },
+            new ComponentData { componentId = "RAM_1_1_2",   sceneTag = "RAM",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 1, nmbComp = 2, failureType = "Сбой оперативной памяти" },
+            new ComponentData { componentId = "RAM_1_1_3",   sceneTag = "RAM",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 1, nmbComp = 3, failureType = "Сбой оперативной памяти" },
+            new ComponentData { componentId = "RAM_1_1_4",   sceneTag = "RAM",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 1, nmbComp = 4, failureType = "Сбой оперативной памяти" },
 
-            new ComponentData { componentId = "Hard_drive1",        sceneTag = "Hard_drive1", kind = ComponentKind.HardDrive, isBroken = false, isInScene = true },
-            new ComponentData { componentId = "Hard_drive2",        sceneTag = "Hard_drive2", kind = ComponentKind.HardDrive, isBroken = false, isInScene = true },
-            new ComponentData { componentId = "Hard_drive3",        sceneTag = "Hard_drive3", kind = ComponentKind.HardDrive, isBroken = false, isInScene = true },
-            new ComponentData { componentId = "Hard_drive4",        sceneTag = "Hard_drive4", kind = ComponentKind.HardDrive, isBroken = false, isInScene = true },
-            new ComponentData { componentId = "Hard_drive5",        sceneTag = "Hard_drive5", kind = ComponentKind.HardDrive, isBroken = false, isInScene = true },
-            new ComponentData { componentId = "Hard_drive6",        sceneTag = "Hard_drive6", kind = ComponentKind.HardDrive, isBroken = false, isInScene = true },
+            new ComponentData { componentId = "HDD_1_1_1",   sceneTag = "HDD",      kind = ComponentKind.HardDrive, isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 1, nmbComp = 1, failureType = "Отказ HDD" },
+            new ComponentData { componentId = "HDD_1_1_2",   sceneTag = "HDD",      kind = ComponentKind.HardDrive, isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 1, nmbComp = 2, failureType = "Отказ HDD" },
+            new ComponentData { componentId = "HDD_1_1_3",   sceneTag = "HDD",      kind = ComponentKind.HardDrive, isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 1, nmbComp = 3, failureType = "Отказ HDD" },
+            new ComponentData { componentId = "HDD_1_1_4",   sceneTag = "HDD",      kind = ComponentKind.HardDrive, isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 1, nmbComp = 4, failureType = "Отказ HDD" },
+            new ComponentData { componentId = "HDD_1_1_5",   sceneTag = "HDD",      kind = ComponentKind.HardDrive, isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 1, nmbComp = 5, failureType = "Отказ HDD" },
+            new ComponentData { componentId = "HDD_1_1_6",   sceneTag = "HDD",      kind = ComponentKind.HardDrive, isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 1, nmbComp = 6, failureType = "Отказ HDD" },
+
+            // ===== Сервер 2 (nmbRack=1, nmbServ=2) =====
+            new ComponentData { componentId = "Fan_1_2_1",   sceneTag = "Fan",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 2, nmbComp = 1, failureType = "Отказ вентилятора" },
+            new ComponentData { componentId = "Fan_1_2_2",   sceneTag = "Fan",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 2, nmbComp = 2, failureType = "Отказ вентилятора" },
+            new ComponentData { componentId = "PSU_1_2",     sceneTag = "PSU",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 2, nmbComp = 0, failureType = "Отказ блока питания" },
+            new ComponentData { componentId = "Cooling_1_2", sceneTag = "Cooling",  kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 2, nmbComp = 0, failureType = "Отказ системы охлаждения" },
+            new ComponentData { componentId = "CPU_1_2",     sceneTag = "CPU",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 2, nmbComp = 0, failureType = "Отказ процессора" },
+            new ComponentData { componentId = "RAM_1_2_1",   sceneTag = "RAM",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 2, nmbComp = 1, failureType = "Сбой оперативной памяти" },
+            new ComponentData { componentId = "RAM_1_2_2",   sceneTag = "RAM",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 2, nmbComp = 2, failureType = "Сбой оперативной памяти" },
+            new ComponentData { componentId = "RAM_1_2_3",   sceneTag = "RAM",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 2, nmbComp = 3, failureType = "Сбой оперативной памяти" },
+            new ComponentData { componentId = "RAM_1_2_4",   sceneTag = "RAM",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 2, nmbComp = 4, failureType = "Сбой оперативной памяти" },
+
+            new ComponentData { componentId = "HDD_1_2_1",   sceneTag = "HDD",      kind = ComponentKind.HardDrive, isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 2, nmbComp = 1, failureType = "Отказ HDD" },
+            new ComponentData { componentId = "HDD_1_2_2",   sceneTag = "HDD",      kind = ComponentKind.HardDrive, isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 2, nmbComp = 2, failureType = "Отказ HDD" },
+            new ComponentData { componentId = "HDD_1_2_3",   sceneTag = "HDD",      kind = ComponentKind.HardDrive, isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 2, nmbComp = 3, failureType = "Отказ HDD" },
+            new ComponentData { componentId = "HDD_1_2_4",   sceneTag = "HDD",      kind = ComponentKind.HardDrive, isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 2, nmbComp = 4, failureType = "Отказ HDD" },
+            new ComponentData { componentId = "HDD_1_2_5",   sceneTag = "HDD",      kind = ComponentKind.HardDrive, isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 2, nmbComp = 5, failureType = "Отказ HDD" },
+            new ComponentData { componentId = "HDD_1_2_6",   sceneTag = "HDD",      kind = ComponentKind.HardDrive, isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 2, nmbComp = 6, failureType = "Отказ HDD" },
         };
     }
 
@@ -99,13 +124,15 @@ public class BrokenComponentManager : MonoBehaviour
         if (data == null || string.IsNullOrWhiteSpace(data.sceneTag))
             return;
 
-        GameObject obj = GameObject.FindGameObjectWithTag(data.sceneTag);
+        string path = $"ServerRack_{data.nmbRack}/ServerBox_{data.nmbServ}/{data.componentId}";
+
+        GameObject obj = GameObject.Find(path);
         data.sceneObject = obj;
         data.isInScene = obj != null && obj.activeSelf;
 
         if (obj == null)
         {
-            Debug.LogWarning($"[BrokenComponentManager] Объект с тегом '{data.sceneTag}' не найден.");
+            Debug.LogWarning($"[BrokenComponentManager] Объект по пути '{path}' не найден.");
             return;
         }
 

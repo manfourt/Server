@@ -45,7 +45,7 @@ public class ComponentClickable : MonoBehaviour
         }
         else
         {
-            int layer = LayerMask.NameToLayer("BrokenComponent");
+            int layer = LayerMask.NameToLayer("BrokenCompnent");
             if (layer >= 0) gameObject.layer = layer;
         }
     }

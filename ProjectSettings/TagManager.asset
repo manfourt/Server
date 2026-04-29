@@ -6,23 +6,13 @@ TagManager:
   tags:
   - ServerBox
   - Sklad
-  - Fan1
-  - Fan2
   - PSU
   - CPU
-  - Cooler
-  - RAM1
-  - RAM2
-  - RAM3
-  - RAM4
   - Motherboard
-  - Hard_drive1
-  - Hard_drive2
-  - Hard_drive3
-  - Hard_drive4
-  - Hard_drive5
-  - Hard_drive6
-  - Hard_drive
+  - HDD
+  - Fan
+  - Cooling
+  - RAM
   layers:
   - Default
   - TransparentFX

@@ -7,6 +7,7 @@ public class PlayerInteraction : MonoBehaviour
     [SerializeField] Camera playerCamera;
 
     CameraViewManager cameraViewManager;
+    ServerBoxController box;
 
     bool waitingForViewChoice = false;
 
@@ -47,8 +48,7 @@ public class PlayerInteraction : MonoBehaviour
             interactRange,
             interactableLayer))
         {
-            ServerBoxController box =
-                hit.collider.GetComponentInParent<ServerBoxController>();
+            box = hit.collider.GetComponentInParent<ServerBoxController>();
 
             if (box != null)
             {
@@ -76,7 +76,7 @@ public class PlayerInteraction : MonoBehaviour
         {
             Debug.Log("R detected");
 
-            cameraViewManager.SetView("R");
+            cameraViewManager.SetView("R", box.servId, box.rackId);
 
             waitingForViewChoice = false;
 
@@ -90,7 +90,7 @@ public class PlayerInteraction : MonoBehaviour
         {
             Debug.Log("T detected");
 
-            cameraViewManager.SetView("T");
+            cameraViewManager.SetView("T", box.servId, box.rackId);
 
             waitingForViewChoice = false;
 
