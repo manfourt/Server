@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Linq;
 
 public class PlayerInteraction : MonoBehaviour
 {
@@ -34,6 +35,10 @@ public class PlayerInteraction : MonoBehaviour
             return;
 
         CheckServerInteraction();
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            InventoryManager.Instance?.ClearHand();
+        }
     }
 
     void CheckServerInteraction()
@@ -55,6 +60,14 @@ public class PlayerInteraction : MonoBehaviour
             {
                 if (Input.GetKeyDown(KeyCode.E))
                 {
+                    // === ЕСЛИ В РУКЕ ЕСТЬ ПРЕДМЕТ ЧИНИМ СЕРВЕР ===
+                    if (InventoryManager.Instance != null && InventoryManager.Instance.HasItem)
+                    {
+                        TryRepairInServer(box);
+                        return;
+                    }
+
+                    // === ИНАЧЕ ОТКРЫВАЕМ ===
                     if (box.IsDoorOpen())
                     {
                         box.OpenBoxUI();
@@ -99,6 +112,52 @@ public class PlayerInteraction : MonoBehaviour
                 UIManager.Instance.HideMenu();
 
             Time.timeScale = 1f;
+        }
+    }
+    void TryRepairInServer(ServerBoxController box)
+    {
+        Debug.Log("[Repair] Попытка ремонта через сервер");
+
+        if (InventoryManager.Instance == null)
+        {
+            Debug.Log("[Repair] Inventory NULL");
+            return;
+        }
+
+        var heldItem = InventoryManager.Instance.CurrentItem;
+        Debug.Log("[Repair] В руке: " + heldItem);
+
+        var brokenManager = BrokenComponentManager.Instance;
+        if (brokenManager == null)
+        {
+            Debug.Log("[Repair] BrokenManager NULL");
+            return;
+        }
+
+        // переводим тип в тег
+        string neededTag = heldItem.ToString().Trim();
+        Debug.Log("[Repair] Ищем тип: '" + neededTag + "'");
+
+        Debug.Log("[Repair] Ищем сломанный компонент типа: " + neededTag);
+
+        var comp = brokenManager.FindBrokenByType(neededTag, box.rackId, box.servId);
+
+        if (comp == null)
+        {
+            Debug.Log("[Repair] Нет сломанных компонентов такого типа");
+            return;
+        }
+
+        Debug.Log("[Repair] Найден: " + comp.componentId);
+
+        bool repaired = brokenManager.TryRepairComponent(comp.componentId);
+
+        Debug.Log("[Repair] Результат ремонта: " + repaired);
+
+        if (repaired)
+        {
+            InventoryManager.Instance.ClearHand();
+            Debug.Log("[Repair] УСПЕШНО ПОЧИНЕНО");
         }
     }
 }

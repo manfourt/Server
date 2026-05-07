@@ -5,6 +5,7 @@ using UnityEngine.UI;
 public class InventoryManager : MonoBehaviour
 {
     public static InventoryManager Instance { get; private set; }
+    public bool HasItem => CurrentItem != ItemType.None;
 
     [Header("Спрайты для типов компонентов")]
     [SerializeField] private Sprite cpuSprite;

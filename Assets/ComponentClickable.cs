@@ -4,6 +4,7 @@ using UnityEngine;
 [RequireComponent(typeof(Outline))]
 public class ComponentClickable : MonoBehaviour
 {
+    public string GetComponentId() => componentId;
     [SerializeField] private string componentId;
     [SerializeField] private BrokenComponentManager.ComponentKind kind;
 

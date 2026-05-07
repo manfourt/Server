@@ -316,4 +316,54 @@ public class BrokenComponentManager : MonoBehaviour
 
         return result;
     }
+
+    public bool TryRepairComponent(string componentId)
+    {
+        var data = FindById(componentId);
+        if (data == null)
+            return false;
+
+        if (!data.isBroken)
+            return false;
+
+        if (data.sceneObject == null)
+            BindSceneObject(data);
+
+        if (data.sceneObject == null)
+            return false;
+
+        data.isBroken = false;
+        data.isInScene = true;
+
+        data.sceneObject.SetActive(true);
+        ApplyStateToObject(data);
+
+        Debug.Log($"[Repair] {componentId} починен");
+
+        return true;
+    }
+    public ComponentData FindBrokenByType(string sceneTag, int rackId, int servId)
+    {
+        foreach (var c in components)
+        {
+            if (c.nmbRack != rackId) continue;
+            if (c.nmbServ != servId) continue;
+
+            // должен быть сломан
+            if (!c.isBroken) continue;
+
+            // И ВАЖНО: должен быть снят
+            if (c.isInScene) continue;
+
+            Debug.Log($"[Check] comp: {c.componentId} | tag: '{c.sceneTag}' | ищем: '{sceneTag}' | broken: {c.isBroken}");
+
+            if (c.sceneTag == sceneTag)
+            {
+                Debug.Log("[Check] НАЙДЕН СОВПАДАЮЩИЙ");
+                return c;
+            }
+        }
+
+        return null;
+    }
 }
