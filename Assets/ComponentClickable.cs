@@ -12,6 +12,9 @@ public class ComponentClickable : MonoBehaviour
     private BrokenComponentManager brokenComponentManager;
     private Camera mainCamera;
 
+    [Header("Склад")]
+    [SerializeField] private bool isWarehouseItem = false;
+
     public void Initialize(string id, BrokenComponentManager.ComponentKind componentKind)
     {
         componentId = id;
@@ -64,7 +67,15 @@ public class ComponentClickable : MonoBehaviour
             return;
         }
 
-        if (!cameraViewManager.IsSpecialViewActive || !brokenComponentManager.CanInteract(kind))
+        // В специальном режиме просмотра складские предметы недоступны
+        if (isWarehouseItem && cameraViewManager.IsSpecialViewActive)
+        {
+            SetHighlight(false);
+            return;
+        }
+
+        // Для не-складских предметов требуется CanInteract
+        if (!isWarehouseItem && !brokenComponentManager.CanInteract(kind))
         {
             SetHighlight(false);
             return;
@@ -72,15 +83,13 @@ public class ComponentClickable : MonoBehaviour
 
         if (mainCamera == null)
             mainCamera = Camera.main;
-
         if (mainCamera == null)
         {
             SetHighlight(false);
             return;
         }
 
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit[] hits = Physics.RaycastAll(ray, 1000f);
 
         ComponentClickable nearestClickable = null;
@@ -88,21 +97,15 @@ public class ComponentClickable : MonoBehaviour
 
         foreach (RaycastHit hit in hits)
         {
-            ComponentClickable clicked =
-               hit.collider.GetComponentInParent<ComponentClickable>();
-
-            if (clicked != null)
+            ComponentClickable clicked = hit.collider.GetComponentInParent<ComponentClickable>();
+            if (clicked != null && hit.distance < nearestDistance)
             {
-                if (hit.distance < nearestDistance)
-                {
-                    nearestDistance = hit.distance;
-                    nearestClickable = clicked;
-                }
+                nearestDistance = hit.distance;
+                nearestClickable = clicked;
             }
         }
 
-        bool hitThisObject =
-            (nearestClickable == this);
+        bool hitThisObject = (nearestClickable == this);
 
         if (hitThisObject)
         {
@@ -110,11 +113,21 @@ public class ComponentClickable : MonoBehaviour
 
             if (Input.GetMouseButtonDown(0))
             {
-                bool success =
-                   brokenComponentManager.TryHideComponent(componentId);
-
-                if (success)
+                // === Ветка для склада ===
+                if (isWarehouseItem)
+                {
+                    // Пытаемся взять предмет
+                    InventoryManager.Instance?.PickUp(gameObject);
                     SetHighlight(false);
+                }
+                // === Ветка для компонентов сервера ===
+                else
+                {
+                    bool success = brokenComponentManager.TryHideComponent(componentId);
+
+                    if (success)
+                        SetHighlight(false);
+                }
             }
         }
         else
@@ -122,6 +135,7 @@ public class ComponentClickable : MonoBehaviour
             SetHighlight(false);
         }
     }
+
 
     private void SetHighlight(bool value)
     {

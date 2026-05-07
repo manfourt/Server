@@ -4,6 +4,7 @@ public class PlayerInteraction : MonoBehaviour
 {
     [SerializeField] float interactRange = 3f;
     [SerializeField] LayerMask interactableLayer;
+    [SerializeField] LayerMask warehouseLayer;
     [SerializeField] Camera playerCamera;
 
     CameraViewManager cameraViewManager;
