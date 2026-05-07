@@ -338,10 +338,15 @@ public class BrokenComponentManager : MonoBehaviour
         data.sceneObject.SetActive(true);
         ApplyStateToObject(data);
 
+        // Скрываем сообщение на мониторе
+        if (MonitorUIManager.Instance != null)
+            MonitorUIManager.Instance.HideFailure(componentId);
+
         Debug.Log($"[Repair] {componentId} починен");
 
         return true;
     }
+
     public ComponentData FindBrokenByType(string sceneTag, int rackId, int servId)
     {
         foreach (var c in components)
