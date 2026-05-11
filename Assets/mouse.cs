@@ -61,9 +61,6 @@ public class mouse : MonoBehaviour
 
         if (cameraManager != null)
             cameraManager.ExitSpecialView();
-
-        if (UIManager.Instance != null)
-            UIManager.Instance.HideMenu();
     }
 
     private void OnGUI()

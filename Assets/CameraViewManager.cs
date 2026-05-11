@@ -120,9 +120,6 @@ public class CameraViewManager : MonoBehaviour
         if (playerMouse != null)
             playerMouse.SetSpecialView(true);
 
-        if (UIManager.Instance != null)
-            UIManager.Instance.HideMenu();
-
         Time.timeScale = 1f;
         Debug.Log($"[CameraViewManager] Активирован режим {viewType}");
     }
