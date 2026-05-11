@@ -23,6 +23,10 @@ public class CameraViewManager : MonoBehaviour
 
     private mouse playerMouse;
 
+    // Храним текущие ID для восстановления коллайдеров
+    private int currentRackId;
+    private int currentServId;
+
     public bool IsSpecialViewActive => isSpecialViewActive;
     public bool IsViewR => currentView == ViewType.R;
     public bool IsViewT => currentView == ViewType.T;
@@ -96,7 +100,7 @@ public class CameraViewManager : MonoBehaviour
 
         if (viewType == "R")
         {
-            viewpoint_R = GameObject.Find($"ServerRack_{rackId}/ServerBox_{servId}/ViewPoint_R").transform;
+            viewpoint_R = GameObject.Find($"ServerRack_{rackId}/ServerBox_{servId}/ViewPoint_R")?.transform;
             if (viewpoint_R == null) return;
             currentView = ViewType.R;
             targetPosition = viewpoint_R.position;
@@ -104,7 +108,7 @@ public class CameraViewManager : MonoBehaviour
         }
         else if (viewType == "T")
         {
-            viewpoint_T = GameObject.Find($"ServerRack_{rackId}/ServerBox_{servId}/ViewPoint_T").transform;
+            viewpoint_T = GameObject.Find($"ServerRack_{rackId}/ServerBox_{servId}/ViewPoint_T")?.transform;
             if (viewpoint_T == null) return;
             currentView = ViewType.T;
             targetPosition = viewpoint_T.position;
@@ -113,6 +117,25 @@ public class CameraViewManager : MonoBehaviour
         else
         {
             return;
+        }
+
+        // Сохраняем ID
+        currentRackId = rackId;
+        currentServId = servId;
+
+        // Отключаем коллайдер серверного бокса
+        ServerBoxController box = GameObject.Find($"ServerRack_{rackId}/ServerBox_{servId}")?.GetComponent<ServerBoxController>();
+        if (box != null)
+            box.SetBoxColliderActive(false);
+
+        // Настраиваем коллайдеры компонентов
+        BrokenComponentManager bcm = BrokenComponentManager.Instance;
+        if (bcm != null)
+        {
+            BrokenComponentManager.ComponentKind activeKind = (viewType == "R")
+                ? BrokenComponentManager.ComponentKind.HardDrive
+                : BrokenComponentManager.ComponentKind.Normal;
+            bcm.SetCollidersForViewMode(activeKind, rackId, servId);
         }
 
         isSpecialViewActive = true;
@@ -126,6 +149,16 @@ public class CameraViewManager : MonoBehaviour
 
     public void ExitSpecialView()
     {
+        // Восстанавливаем коллайдеры компонентов
+        BrokenComponentManager bcm = BrokenComponentManager.Instance;
+        if (bcm != null)
+            bcm.ResetAllColliders();
+
+        // Включаем коллайдер серверного бокса обратно
+        ServerBoxController box = GameObject.Find($"ServerRack_{currentRackId}/ServerBox_{currentServId}")?.GetComponent<ServerBoxController>();
+        if (box != null)
+            box.SetBoxColliderActive(true);
+
         isSpecialViewActive = false;
         currentView = ViewType.None;
 

@@ -1,11 +1,14 @@
 using UnityEngine;
+using System.Collections;
 
 public class Open : MonoBehaviour
 {
-    private static readonly int OpenHash = Animator.StringToHash("Open");
-
     [SerializeField] private float openDistance = 5f;
     [SerializeField] private LayerMask doorLayerMask = ~0;
+
+    [Header("Анимация серверного бокса (код)")]
+    [SerializeField] private float slideDistance = 0.6465f; // 0.9805 - 0.334 = 0.6465
+    [SerializeField] private float animationSpeed = 7.5f;
 
     private Animator anim;
     private Transform player;
@@ -15,12 +18,14 @@ public class Open : MonoBehaviour
 
     public bool IsOpen => doorOpen;
     private bool doorOpen = false;
+    private bool isAnimating = false;
 
-    // Статическая ссылка на текущий открытый серверный бокс
     private static Open currentlyOpenedBox = null;
-
-    // Является ли этот объект серверным боксом
     private bool isServerBox;
+
+    // Запоминаем исходную позицию
+    private Vector3 initialLocalPosition;
+    private Vector3 targetLocalPosition;
 
     private void Start()
     {
@@ -30,12 +35,21 @@ public class Open : MonoBehaviour
         player = GameObject.FindGameObjectWithTag("Player")?.transform;
         mainCamera = Camera.main;
 
-        // Проверяем, есть ли на объекте ServerBoxController
         isServerBox = GetComponent<ServerBoxController>() != null;
 
         doorOpen = false;
-        if (anim != null)
+
+        if (isServerBox)
+        {
+            // Запоминаем позицию, которую выставили в редакторе
+            initialLocalPosition = transform.localPosition;
+            // Выдвинутая позиция = исходная + смещение по Z (вперёд)
+            targetLocalPosition = initialLocalPosition + new Vector3(0, 0, slideDistance);
+        }
+        else if (anim != null)
+        {
             anim.SetBool("Open", true);
+        }
 
         if (outlineComponent != null)
             outlineComponent.enabled = false;
@@ -45,7 +59,7 @@ public class Open : MonoBehaviour
 
     private void Update()
     {
-        if (player == null || anim == null)
+        if (player == null)
             return;
 
         if (cameraViewManager != null && cameraViewManager.IsSpecialViewActive)
@@ -88,13 +102,15 @@ public class Open : MonoBehaviour
 
     private void ToggleDoor()
     {
+        if (isAnimating)
+            return;
+
         if (doorOpen)
         {
             CloseDoor();
         }
         else
         {
-            // Только для серверных боксов: закрываем предыдущий открытый
             if (isServerBox && currentlyOpenedBox != null && currentlyOpenedBox != this)
             {
                 currentlyOpenedBox.CloseDoor();
@@ -109,29 +125,59 @@ public class Open : MonoBehaviour
         doorOpen = true;
 
         if (isServerBox)
+        {
             currentlyOpenedBox = this;
-
-        if (anim != null)
+            StopAllCoroutines();
+            StartCoroutine(AnimateDoor(targetLocalPosition));
+        }
+        else if (anim != null)
+        {
             anim.SetBool("Open", false);
+        }
 
-        Debug.Log($"Дверь открыта: {gameObject.name} (серверный бокс: {isServerBox})");
+        Debug.Log($"Дверь открыта: {gameObject.name}");
     }
 
     private void CloseDoor()
     {
         doorOpen = false;
 
-        if (isServerBox && currentlyOpenedBox == this)
-            currentlyOpenedBox = null;
+        if (isServerBox)
+        {
+            if (currentlyOpenedBox == this)
+                currentlyOpenedBox = null;
 
-        if (anim != null)
+            StopAllCoroutines();
+            StartCoroutine(AnimateDoor(initialLocalPosition));
+
+            if (cameraViewManager != null && cameraViewManager.IsSpecialViewActive)
+                cameraViewManager.ExitSpecialView();
+        }
+        else if (anim != null)
+        {
             anim.SetBool("Open", true);
-
-        // Выходим из спецрежима при закрытии
-        if (isServerBox && cameraViewManager != null && cameraViewManager.IsSpecialViewActive)
-            cameraViewManager.ExitSpecialView();
+        }
 
         Debug.Log($"Дверь закрыта: {gameObject.name}");
+    }
+
+    private IEnumerator AnimateDoor(Vector3 targetPos)
+    {
+        isAnimating = true;
+        Vector3 startPosition = transform.localPosition;
+        float duration = 1f / animationSpeed;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
+            transform.localPosition = Vector3.Lerp(startPosition, targetPos, t);
+            yield return null;
+        }
+
+        transform.localPosition = targetPos;
+        isAnimating = false;
     }
 
     private void OnDestroy()
