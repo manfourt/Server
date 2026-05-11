@@ -110,8 +110,8 @@ public class BrokenComponentManager : MonoBehaviour
             new ComponentData { componentId = "HDD_1_2_6",   sceneTag = "HDD",      kind = ComponentKind.HardDrive, isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 2, nmbComp = 6, failureType = "Отказ HDD" },
 
             // ===== Сервер 3 (nmbRack=1, nmbServ=3) =====
-new ComponentData { componentId = "Fan_1_3_1",   sceneTag = "Fan",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 3, nmbComp = 1, failureType = "Отказ вентилятора 1" },
-new ComponentData { componentId = "Fan_1_3_2",   sceneTag = "Fan",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 3, nmbComp = 2, failureType = "Отказ вентилятора 2" },
+new ComponentData { componentId = "Fan_1_3_1",   sceneTag = "Fan",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 3, nmbComp = 1, failureType = "Отказ вентилятора" },
+new ComponentData { componentId = "Fan_1_3_2",   sceneTag = "Fan",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 3, nmbComp = 2, failureType = "Отказ вентилятора" },
 new ComponentData { componentId = "PSU_1_3",     sceneTag = "PSU",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 3, nmbComp = 0, failureType = "Отказ блока питания" },
 new ComponentData { componentId = "Cooling_1_3", sceneTag = "Cooling",  kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 3, nmbComp = 0, failureType = "Отказ кулера" },
 new ComponentData { componentId = "CPU_1_3",     sceneTag = "CPU",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 3, nmbComp = 0, failureType = "Отказ процессора" },
@@ -128,8 +128,8 @@ new ComponentData { componentId = "HDD_1_3_5",   sceneTag = "HDD",      kind = C
 new ComponentData { componentId = "HDD_1_3_6",   sceneTag = "HDD",      kind = ComponentKind.HardDrive, isBroken = false, isInScene = true, nmbRack = 1, nmbServ = 3, nmbComp = 6, failureType = "Отказ HDD" },
 
 // ===== Сервер 1 стойки 2 (nmbRack=2, nmbServ=1) =====
-new ComponentData { componentId = "Fan_2_1_1",   sceneTag = "Fan",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 1, nmbComp = 1, failureType = "Отказ вентилятора 1" },
-new ComponentData { componentId = "Fan_2_1_2",   sceneTag = "Fan",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 1, nmbComp = 2, failureType = "Отказ вентилятора 2" },
+new ComponentData { componentId = "Fan_2_1_1",   sceneTag = "Fan",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 1, nmbComp = 1, failureType = "Отказ вентилятора" },
+new ComponentData { componentId = "Fan_2_1_2",   sceneTag = "Fan",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 1, nmbComp = 2, failureType = "Отказ вентилятора" },
 new ComponentData { componentId = "PSU_2_1",     sceneTag = "PSU",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 1, nmbComp = 0, failureType = "Отказ блока питания" },
 new ComponentData { componentId = "Cooling_2_1", sceneTag = "Cooling",  kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 1, nmbComp = 0, failureType = "Отказ кулера" },
 new ComponentData { componentId = "CPU_2_1",     sceneTag = "CPU",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 1, nmbComp = 0, failureType = "Отказ процессора" },
@@ -146,8 +146,8 @@ new ComponentData { componentId = "HDD_2_1_5",   sceneTag = "HDD",      kind = C
 new ComponentData { componentId = "HDD_2_1_6",   sceneTag = "HDD",      kind = ComponentKind.HardDrive, isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 1, nmbComp = 6, failureType = "Отказ HDD" },
 
 // ===== Сервер 2 стойки 2 (nmbRack=2, nmbServ=2) =====
-new ComponentData { componentId = "Fan_2_2_1",   sceneTag = "Fan",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 2, nmbComp = 1, failureType = "Отказ вентилятора 1" },
-new ComponentData { componentId = "Fan_2_2_2",   sceneTag = "Fan",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 2, nmbComp = 2, failureType = "Отказ вентилятора 2" },
+new ComponentData { componentId = "Fan_2_2_1",   sceneTag = "Fan",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 2, nmbComp = 1, failureType = "Отказ вентилятора" },
+new ComponentData { componentId = "Fan_2_2_2",   sceneTag = "Fan",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 2, nmbComp = 2, failureType = "Отказ вентилятора" },
 new ComponentData { componentId = "PSU_2_2",     sceneTag = "PSU",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 2, nmbComp = 0, failureType = "Отказ блока питания" },
 new ComponentData { componentId = "Cooling_2_2", sceneTag = "Cooling",  kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 2, nmbComp = 0, failureType = "Отказ кулера" },
 new ComponentData { componentId = "CPU_2_2",     sceneTag = "CPU",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 2, nmbComp = 0, failureType = "Отказ процессора" },
@@ -164,8 +164,8 @@ new ComponentData { componentId = "HDD_2_2_5",   sceneTag = "HDD",      kind = C
 new ComponentData { componentId = "HDD_2_2_6",   sceneTag = "HDD",      kind = ComponentKind.HardDrive, isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 2, nmbComp = 6, failureType = "Отказ HDD" },
 
             // ===== Сервер 3 (nmbRack=1, nmbServ=3) =====
-new ComponentData { componentId = "Fan_2_3_1",   sceneTag = "Fan",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 3, nmbComp = 1, failureType = "Отказ вентилятора 1" },
-new ComponentData { componentId = "Fan_2_3_2",   sceneTag = "Fan",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 3, nmbComp = 2, failureType = "Отказ вентилятора 2" },
+new ComponentData { componentId = "Fan_2_3_1",   sceneTag = "Fan",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 3, nmbComp = 1, failureType = "Отказ вентилятора" },
+new ComponentData { componentId = "Fan_2_3_2",   sceneTag = "Fan",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 3, nmbComp = 2, failureType = "Отказ вентилятора" },
 new ComponentData { componentId = "PSU_2_3",     sceneTag = "PSU",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 3, nmbComp = 0, failureType = "Отказ блока питания" },
 new ComponentData { componentId = "Cooling_2_3", sceneTag = "Cooling",  kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 3, nmbComp = 0, failureType = "Отказ кулера" },
 new ComponentData { componentId = "CPU_2_3",     sceneTag = "CPU",      kind = ComponentKind.Normal,    isBroken = false, isInScene = true, nmbRack = 2, nmbServ = 3, nmbComp = 0, failureType = "Отказ процессора" },
