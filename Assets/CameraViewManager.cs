@@ -119,7 +119,6 @@ public class CameraViewManager : MonoBehaviour
             return;
         }
 
-        // Сохраняем ID
         currentRackId = rackId;
         currentServId = servId;
 
@@ -128,13 +127,26 @@ public class CameraViewManager : MonoBehaviour
         if (box != null)
             box.SetBoxColliderActive(false);
 
-        // Настраиваем коллайдеры компонентов
+        // Отключаем коллайдеры ВСЕХ серверных боксов, кроме текущего
+        ServerBoxController[] allBoxes = FindObjectsOfType<ServerBoxController>();
+        foreach (var b in allBoxes)
+        {
+            if (b.rackId != rackId || b.servId != servId)
+                b.SetBoxColliderActive(false);
+        }
+
+        // Настраиваем коллайдеры компонентов: ТОЛЬКО у текущего сервера
         BrokenComponentManager bcm = BrokenComponentManager.Instance;
         if (bcm != null)
         {
             BrokenComponentManager.ComponentKind activeKind = (viewType == "R")
                 ? BrokenComponentManager.ComponentKind.HardDrive
                 : BrokenComponentManager.ComponentKind.Normal;
+
+            // Отключаем все коллайдеры компонентов
+            bcm.DisableAllComponentColliders();
+
+            // Включаем только нужные у текущего сервера
             bcm.SetCollidersForViewMode(activeKind, rackId, servId);
         }
 
@@ -144,7 +156,7 @@ public class CameraViewManager : MonoBehaviour
             playerMouse.SetSpecialView(true);
 
         Time.timeScale = 1f;
-        Debug.Log($"[CameraViewManager] Активирован режим {viewType}");
+        Debug.Log($"[CameraViewManager] Активирован режим {viewType} для стойки {rackId}, сервера {servId}");
     }
 
     public void ExitSpecialView()
@@ -154,10 +166,12 @@ public class CameraViewManager : MonoBehaviour
         if (bcm != null)
             bcm.ResetAllColliders();
 
-        // Включаем коллайдер серверного бокса обратно
-        ServerBoxController box = GameObject.Find($"ServerRack_{currentRackId}/ServerBox_{currentServId}")?.GetComponent<ServerBoxController>();
-        if (box != null)
+        // Включаем коллайдеры всех серверных боксов обратно
+        ServerBoxController[] allBoxes = FindObjectsOfType<ServerBoxController>();
+        foreach (var box in allBoxes)
+        {
             box.SetBoxColliderActive(true);
+        }
 
         isSpecialViewActive = false;
         currentView = ViewType.None;

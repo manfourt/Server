@@ -12244,6 +12244,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aed788a5cd7496f409524a11d58d54cf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  emptySlotIndicatorPrefab: {fileID: 7313853596033135751, guid: abd0b5322a367ca489d7602dae9f0d3e, type: 3}
   components: []
   normalLayerName: BrokenCompnent
   hardDriveLayerName: BrokenHardDrive

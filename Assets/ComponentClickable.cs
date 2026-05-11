@@ -18,6 +18,9 @@ public class ComponentClickable : MonoBehaviour
     [Header("Склад")]
     [SerializeField] private bool isWarehouseItem = false;
 
+    private float actionCooldown = 0f;
+    private bool forceDisable = false;
+
     public void Initialize(string id, BrokenComponentManager.ComponentKind componentKind)
     {
         componentId = id;
@@ -59,6 +62,19 @@ public class ComponentClickable : MonoBehaviour
 
     private void Update()
     {
+        if (forceDisable)
+        {
+            SetHighlight(false);
+            return;
+        }
+
+        if (actionCooldown > 0f)
+        {
+            actionCooldown -= Time.deltaTime;
+            SetHighlight(false);
+            return;
+        }
+
         if (brokenComponentManager == null)
             brokenComponentManager = BrokenComponentManager.Instance ?? FindObjectOfType<BrokenComponentManager>();
         if (cameraViewManager == null)
@@ -101,6 +117,7 @@ public class ComponentClickable : MonoBehaviour
 
         bool isHovered = false;
         bool canInteract = false;
+        Vector3 hitPoint = Vector3.zero;
 
         if (isWarehouseItem)
         {
@@ -118,10 +135,8 @@ public class ComponentClickable : MonoBehaviour
                 }
             }
 
-            // Проверяем что это наш предмет, в пределах дистанции, и нет стены между нами
             if (nearest == this && nearestDist <= 2f)
             {
-                // Дополнительный рейкаст: проверяем что первый объект на пути — это складской предмет
                 RaycastHit firstHit;
                 if (Physics.Raycast(ray, out firstHit, 3f))
                 {
@@ -130,61 +145,53 @@ public class ComponentClickable : MonoBehaviour
                 }
             }
             canInteract = isHovered;
+            SetHighlight(isHovered);
         }
         else
         {
-            // Луч из позиции курсора
+            bool hasItem = inventoryManager != null && inventoryManager.HasItem;
+            bool isPresent = data.isInScene;
+
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
             bool hitThis = Physics.Raycast(ray, out hit, 100f) &&
                            (hit.collider.gameObject == gameObject || hit.collider.transform.IsChildOf(transform));
 
-            bool hasItem = inventoryManager != null && inventoryManager.HasItem;
-            bool isPresent = data.isInScene;
+            hitPoint = hit.point;
 
             if (hitThis)
             {
                 if (!hasItem && isPresent)
                 {
-                    // Рука пуста, компонент на месте — можно удалить
                     canInteract = true;
                 }
                 else if (hasItem && !isPresent)
                 {
-                    // Рука занята, место пустое — можно вставить
                     string handTag = inventoryManager.CurrentItem.ToString();
                     if (handTag == data.sceneTag)
                         canInteract = true;
                 }
             }
-
-            // ВСЕГДА показываем рамку для пустых мест (независимо от наведения)
-            if (!isPresent)
-            {
-                SetHighlight(true);
-            }
-
-            // Если навели — используем canInteract для клика
             isHovered = hitThis && canInteract;
+            SetHighlight(isHovered);
         }
 
-        SetHighlight(isHovered);
-
-        if (isHovered && Input.GetMouseButtonDown(0))
+        // ===== ЕДИНСТВЕННЫЙ БЛОК КЛИКА =====
+        if (isHovered && Input.GetMouseButtonDown(0) && actionCooldown <= 0f)
         {
             if (isWarehouseItem)
             {
                 inventoryManager?.PickUp(gameObject);
                 SetHighlight(false);
+                actionCooldown = 0.3f;
             }
             else
             {
                 bool hasItem = inventoryManager != null && inventoryManager.HasItem;
                 if (!hasItem)
                 {
-                    bool success = brokenComponentManager.TryHideComponent(componentId);
-                    if (success)
-                        Debug.Log($"[ComponentClickable] Удалён компонент: {componentId}");
+                    brokenComponentManager.TryHideComponent(componentId, hitPoint);
+                    Debug.Log($"[ComponentClickable] Удалён компонент: {componentId}");
                 }
                 else
                 {
@@ -194,12 +201,9 @@ public class ComponentClickable : MonoBehaviour
                         inventoryManager.ClearHand();
                         Debug.Log($"[ComponentClickable] Восстановлен компонент: {componentId}");
                     }
-                    else
-                    {
-                        Debug.Log($"[ComponentClickable] Не удалось восстановить: {componentId}");
-                    }
                 }
                 SetHighlight(false);
+                actionCooldown = 0.5f;
             }
         }
     }
@@ -208,5 +212,33 @@ public class ComponentClickable : MonoBehaviour
     {
         if (outline != null)
             outline.enabled = value;
+    }
+
+    public void ForceDisableHighlight()
+    {
+        forceDisable = true;
+        if (outline != null)
+            outline.enabled = false;
+    }
+
+    public void EnableHighlight()
+    {
+        forceDisable = false;
+    }
+
+    private void OnDisable()
+    {
+        if (outline != null)
+            outline.enabled = false;
+        actionCooldown = 0f;
+        forceDisable = false;
+    }
+
+    private void OnEnable()
+    {
+        forceDisable = false;
+        actionCooldown = 0f;
+        if (outline != null)
+            outline.enabled = false;
     }
 }

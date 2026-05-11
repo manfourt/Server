@@ -4,6 +4,10 @@ using UnityEngine;
 
 public class BrokenComponentManager : MonoBehaviour
 {
+    [Header("Индикатор пустого места")]
+    [SerializeField] private GameObject emptySlotIndicatorPrefab;
+    private Dictionary<string, GameObject> emptySlotIndicators = new Dictionary<string, GameObject>();
+
     public static BrokenComponentManager Instance { get; private set; }
 
     public enum ComponentKind
@@ -304,7 +308,7 @@ new ComponentData { componentId = "HDD_2_3_6",   sceneTag = "HDD",      kind = C
         return true;
     }
 
-    public bool TryHideComponent(string componentId)
+    public bool TryHideComponent(string componentId, Vector3? hitPoint = null)
     {
         var data = FindById(componentId);
         if (data == null)
@@ -312,9 +316,6 @@ new ComponentData { componentId = "HDD_2_3_6",   sceneTag = "HDD",      kind = C
             Debug.LogWarning($"[BrokenComponentManager] Компонент '{componentId}' не найден.");
             return false;
         }
-
-        // Убираем проверку CanInteract, теперь можно удалить в любом спецрежиме
-        // if (!CanInteract(data.kind)) ...
 
         if (!data.isInScene)
         {
@@ -331,12 +332,29 @@ new ComponentData { componentId = "HDD_2_3_6",   sceneTag = "HDD",      kind = C
             return false;
         }
 
+        // Делаем меш прозрачным
         SetVisualActive(data, false);
         data.isInScene = false;
 
+        // ВЫКЛЮЧАЕМ Outline
         Outline outline = data.sceneObject.GetComponent<Outline>();
         if (outline != null)
             outline.enabled = false;
+
+        // Создаём крестик в точке попадания
+        if (emptySlotIndicatorPrefab != null)
+        {
+            Vector3 spawnPosition = hitPoint ?? data.sceneObject.transform.position;
+
+            GameObject indicator = Instantiate(emptySlotIndicatorPrefab,
+                spawnPosition,
+                Quaternion.identity);
+
+            indicator.transform.localScale = new Vector3(0.02f, 0.02f, 0.02f);
+            indicator.transform.SetParent(data.sceneObject.transform);
+
+            emptySlotIndicators[componentId] = indicator;
+        }
 
         Debug.Log($"[BrokenComponentManager] Компонент '{componentId}' скрыт.");
         return true;
@@ -346,10 +364,16 @@ new ComponentData { componentId = "HDD_2_3_6",   sceneTag = "HDD",      kind = C
     {
         var data = FindById(componentId);
         if (data == null)
+        {
+            Debug.Log("TryRestore: data == null");
             return false;
+        }
 
         if (data.isInScene)
+        {
+            Debug.Log("TryRestore: already in scene");
             return false;
+        }
 
         if (data.sceneObject == null)
             BindSceneObject(data);
@@ -357,12 +381,25 @@ new ComponentData { componentId = "HDD_2_3_6",   sceneTag = "HDD",      kind = C
         if (data.sceneObject == null)
             return false;
 
-        // Включаем визуал обратно
+        // Возвращаем оригинальные материалы
         SetVisualActive(data, true);
         data.isInScene = true;
         data.isBroken = false;
 
-        // Скрываем сообщение на мониторе, если оно было для этого компонента
+        // ВЫКЛЮЧАЕМ Outline
+        Outline outline = data.sceneObject.GetComponent<Outline>();
+        if (outline != null)
+            outline.enabled = false;
+
+        Debug.Log($"TryRestore: removing indicator for {componentId}, exists={emptySlotIndicators.ContainsKey(componentId)}");
+
+        if (emptySlotIndicators.ContainsKey(componentId))
+        {
+            if (emptySlotIndicators[componentId] != null)
+                Destroy(emptySlotIndicators[componentId]);
+            emptySlotIndicators.Remove(componentId);
+        }
+
         if (MonitorUIManager.Instance != null)
             MonitorUIManager.Instance.HideFailure(componentId);
 
@@ -492,6 +529,40 @@ new ComponentData { componentId = "HDD_2_3_6",   sceneTag = "HDD",      kind = C
             Collider col = data.sceneObject.GetComponent<Collider>();
             if (col != null)
                 col.enabled = true;
+        }
+    }
+
+    public void DisableAllComponentColliders()
+    {
+        foreach (var data in components)
+        {
+            if (data.sceneObject == null)
+                BindSceneObject(data);
+            if (data.sceneObject == null) continue;
+
+            Collider col = data.sceneObject.GetComponent<Collider>();
+            if (col != null)
+                col.enabled = false;
+        }
+    }
+
+    private void Update()
+    {
+        // Поворачиваем все крестики к камере
+        if (Camera.main != null)
+        {
+            foreach (var kvp in emptySlotIndicators)
+            {
+                if (kvp.Value != null)
+                {
+                    Transform visual = kvp.Value.transform;
+                    if (visual != null)
+                    {
+                        visual.LookAt(Camera.main.transform);
+                        visual.Rotate(0, 180, 0);
+                    }
+                }
+            }
         }
     }
 }
