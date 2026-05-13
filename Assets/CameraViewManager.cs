@@ -1,11 +1,13 @@
 using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit;
 
 public class CameraViewManager : MonoBehaviour
 {
     public static CameraViewManager Instance { get; private set; }
 
-    [Header("Камера")]
-    [SerializeField] private Camera mainCamera;
+    [Header("Объекты")]
+    [Tooltip("Перетащите сюда объект 'VRPlayer' (бывший XR Origin) из вашей сцены")]
+    [SerializeField] private Transform xrOrigin;
     [SerializeField] private float smoothSpeed = 5f;
 
     private Transform viewpoint_R;
@@ -21,9 +23,6 @@ public class CameraViewManager : MonoBehaviour
     private enum ViewType { None, R, T }
     private ViewType currentView = ViewType.None;
 
-    private mouse playerMouse;
-
-    // Храним текущие ID для восстановления коллайдеров
     private int currentRackId;
     private int currentServId;
 
@@ -31,72 +30,53 @@ public class CameraViewManager : MonoBehaviour
     public bool IsViewR => currentView == ViewType.R;
     public bool IsViewT => currentView == ViewType.T;
 
+    // Ссылки на компоненты перемещения
+    private TeleportationProvider teleportationProvider;
+    private ActionBasedContinuousMoveProvider continuousMoveProvider;
+    private ActionBasedSnapTurnProvider snapTurnProvider;
+
     private void Awake()
     {
         if (Instance == null) Instance = this;
-        else
-        {
-            Destroy(gameObject);
-            return;
-        }
+        else Destroy(gameObject);
     }
 
     private void Start()
     {
-        if (mainCamera == null)
-            mainCamera = Camera.main;
-
-        playerMouse = FindObjectOfType<mouse>();
-
-        if (mainCamera != null)
+        // Автоматический поиск, если не задано в инспекторе
+        if (xrOrigin == null)
         {
-            originalPosition = mainCamera.transform.position;
-            originalRotation = mainCamera.transform.rotation;
+            var origin = FindObjectOfType<Unity.XR.CoreUtils.XROrigin>();
+            if (origin != null) xrOrigin = origin.transform;
+            else Debug.LogError("[CameraViewManager] Не найден XR Origin на сцене! Перетащите его в инспектор.");
+        }
+
+        if (xrOrigin != null)
+        {
+            // Получаем компоненты для управления передвижением
+            teleportationProvider = xrOrigin.GetComponent<TeleportationProvider>();
+            continuousMoveProvider = xrOrigin.GetComponent<ActionBasedContinuousMoveProvider>();
+            snapTurnProvider = xrOrigin.GetComponent<ActionBasedSnapTurnProvider>();
         }
     }
 
     private void Update()
     {
-        if (isSpecialViewActive && mainCamera != null)
+        // Плавное перемещение к точке обзора
+        if (isSpecialViewActive && xrOrigin != null)
         {
-            mainCamera.transform.position = Vector3.Lerp(
-                mainCamera.transform.position,
-                targetPosition,
-                Time.unscaledDeltaTime * smoothSpeed);
-
-            mainCamera.transform.rotation = Quaternion.Lerp(
-                mainCamera.transform.rotation,
-                targetRotation,
-                Time.unscaledDeltaTime * smoothSpeed);
-        }
-
-        UpdateCursorState();
-
-        if (Input.GetKeyDown(KeyCode.Escape) && isSpecialViewActive)
-            ExitSpecialView();
-    }
-
-    private void UpdateCursorState()
-    {
-        if (isSpecialViewActive)
-        {
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-        }
-        else
-        {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
+            xrOrigin.position = Vector3.Lerp(xrOrigin.position, targetPosition, Time.unscaledDeltaTime * smoothSpeed);
+            xrOrigin.rotation = Quaternion.Slerp(xrOrigin.rotation, targetRotation, Time.unscaledDeltaTime * smoothSpeed);
         }
     }
 
     public void SetView(string viewType, int servId, int rackId)
     {
-        if (mainCamera == null)
-            mainCamera = Camera.main;
+        if (xrOrigin == null) return;
 
-        if (mainCamera == null)
-            return;
+        // Сохраняем позицию, куда нужно будет вернуться
+        originalPosition = xrOrigin.position;
+        originalRotation = xrOrigin.rotation;
 
         if (viewType == "R")
         {
@@ -122,79 +102,47 @@ public class CameraViewManager : MonoBehaviour
         currentRackId = rackId;
         currentServId = servId;
 
-        // Отключаем коллайдер серверного бокса
-        ServerBoxController box = GameObject.Find($"ServerRack_{rackId}/ServerBox_{servId}")?.GetComponent<ServerBoxController>();
-        if (box != null)
-            box.SetBoxColliderActive(false);
+        // Отключаем стандартное перемещение игрока
+        SetLocomotionActive(false);
 
-        // Отключаем коллайдеры ВСЕХ серверных боксов, кроме текущего
-        ServerBoxController[] allBoxes = FindObjectsOfType<ServerBoxController>();
-        foreach (var b in allBoxes)
-        {
-            if (b.rackId != rackId || b.servId != servId)
-                b.SetBoxColliderActive(false);
-        }
-
-        // Настраиваем коллайдеры компонентов: ТОЛЬКО у текущего сервера
-        BrokenComponentManager bcm = BrokenComponentManager.Instance;
-        if (bcm != null)
-        {
-            BrokenComponentManager.ComponentKind activeKind = (viewType == "R")
-                ? BrokenComponentManager.ComponentKind.HardDrive
-                : BrokenComponentManager.ComponentKind.Normal;
-
-            // Отключаем все коллайдеры компонентов
-            bcm.DisableAllComponentColliders();
-
-            // Включаем только нужные у текущего сервера
-            bcm.SetCollidersForViewMode(activeKind, rackId, servId);
-        }
+        BrokenComponentManager.Instance?.SetCollidersForViewMode(
+            viewType == "R" ? BrokenComponentManager.ComponentKind.HardDrive : BrokenComponentManager.ComponentKind.Normal,
+            rackId,
+            servId
+        );
 
         isSpecialViewActive = true;
-
-        if (playerMouse != null)
-            playerMouse.SetSpecialView(true);
-
-        Time.timeScale = 1f;
-        Debug.Log($"[CameraViewManager] Активирован режим {viewType} для стойки {rackId}, сервера {servId}");
+        Time.timeScale = 1f; // На случай если была пауза
+        Debug.Log($"[CameraViewManager] Установлен вид {viewType} для стойки {rackId}, сервера {servId}");
     }
 
     public void ExitSpecialView()
     {
-        // Восстанавливаем коллайдеры компонентов
-        BrokenComponentManager bcm = BrokenComponentManager.Instance;
-        if (bcm != null)
-            bcm.ResetAllColliders();
-
-        // Включаем коллайдеры всех серверных боксов обратно
-        ServerBoxController[] allBoxes = FindObjectsOfType<ServerBoxController>();
-        foreach (var box in allBoxes)
-        {
-            box.SetBoxColliderActive(true);
-        }
+        if (!isSpecialViewActive) return;
 
         isSpecialViewActive = false;
         currentView = ViewType.None;
 
-        if (playerMouse != null)
-            playerMouse.SetSpecialView(false);
+        BrokenComponentManager.Instance?.ResetAllColliders();
 
-        if (mainCamera != null)
+        // Возвращаем игрока на исходную позицию
+        if (xrOrigin != null)
         {
-            mainCamera.transform.position = originalPosition;
-            mainCamera.transform.rotation = originalRotation;
+            xrOrigin.position = originalPosition;
+            xrOrigin.rotation = originalRotation;
         }
 
-        UpdateCursorState();
-        Debug.Log("[CameraViewManager] Выход из спецрежима");
+        // Включаем перемещение обратно
+        SetLocomotionActive(true);
+
+        Debug.Log("[CameraViewManager] Выход из специального вида.");
     }
 
-    public void UpdateOriginalPosition(Vector3 newPos, Quaternion newRot)
+    // Вспомогательный метод для вкл/выкл перемещения
+    private void SetLocomotionActive(bool active)
     {
-        if (!isSpecialViewActive)
-        {
-            originalPosition = newPos;
-            originalRotation = newRot;
-        }
+        if (teleportationProvider != null) teleportationProvider.enabled = active;
+        if (continuousMoveProvider != null) continuousMoveProvider.enabled = active;
+        if (snapTurnProvider != null) snapTurnProvider.enabled = active;
     }
 }

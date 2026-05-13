@@ -89,7 +89,7 @@ public class Open : MonoBehaviour
                 if (outlineComponent != null)
                     outlineComponent.enabled = true;
 
-                if (Input.GetMouseButtonDown(0) && !ViewPointClickable.IsAnyViewpointHovered)
+                if (Input.GetMouseButtonDown(0))
                 {
                     ToggleDoor();
                 }
@@ -100,7 +100,7 @@ public class Open : MonoBehaviour
             outlineComponent.enabled = false;
     }
 
-    private void ToggleDoor()
+    public void ToggleDoor()
     {
         if (isAnimating)
             return;
