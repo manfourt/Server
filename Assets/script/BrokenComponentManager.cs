@@ -275,7 +275,7 @@ new ComponentData { componentId = "HDD_2_3_6",   sceneTag = "HDD",      kind = C
         if (cameraViewManager == null)
             cameraViewManager = FindObjectOfType<CameraViewManager>();
 
-        if (cameraViewManager == null || !cameraViewManager.IsSpecialViewActive)
+        if (cameraViewManager == null || !cameraViewManager.IsRepairModeActive)
             return false;
 
         return kind == ComponentKind.HardDrive
@@ -332,31 +332,44 @@ new ComponentData { componentId = "HDD_2_3_6",   sceneTag = "HDD",      kind = C
             return false;
         }
 
-        // Делаем меш прозрачным
+        // Делаем компонент невидимым
         SetVisualActive(data, false);
         data.isInScene = false;
 
-        // ВЫКЛЮЧАЕМ Outline
+        // Выключаем Outline
         Outline outline = data.sceneObject.GetComponent<Outline>();
         if (outline != null)
             outline.enabled = false;
 
-        // Создаём крестик в точке попадания
+        // Создаём крестик в точке попадания луча (или в центре объекта, если точки нет)
         if (emptySlotIndicatorPrefab != null)
         {
-            Vector3 spawnPosition = hitPoint ?? data.sceneObject.transform.position;
+            // Используем точку попадания луча, если она передана
+            Vector3 indicatorPosition = hitPoint ?? data.sceneObject.transform.position;
+
+            // Немного смещаем крестик к камере, чтобы он не был внутри объекта
+            if (Camera.main != null && hitPoint.HasValue)
+            {
+                Vector3 directionToCamera = (Camera.main.transform.position - indicatorPosition).normalized;
+                indicatorPosition += directionToCamera * 0.02f;
+            }
 
             GameObject indicator = Instantiate(emptySlotIndicatorPrefab,
-                spawnPosition,
+                indicatorPosition,
                 Quaternion.identity);
 
             indicator.transform.localScale = new Vector3(0.02f, 0.02f, 0.02f);
             indicator.transform.SetParent(data.sceneObject.transform);
 
             emptySlotIndicators[componentId] = indicator;
+
+            Debug.Log($"[BrokenComponentManager] Компонент '{componentId}' скрыт. Крестик создан в {indicatorPosition}");
+        }
+        else
+        {
+            Debug.Log($"[BrokenComponentManager] Компонент '{componentId}' скрыт.");
         }
 
-        Debug.Log($"[BrokenComponentManager] Компонент '{componentId}' скрыт.");
         return true;
     }
 
@@ -562,6 +575,30 @@ new ComponentData { componentId = "HDD_2_3_6",   sceneTag = "HDD",      kind = C
                         visual.Rotate(0, 180, 0);
                     }
                 }
+            }
+        }
+    }
+    /// <summary>
+    /// Включает коллайдеры ВСЕХ компонентов указанного сервера
+    /// </summary>
+    public void SetCollidersForRepairMode(int rackId, int servId)
+    {
+        Debug.Log($"[BrokenComponentManager] Включение коллайдеров для стойки {rackId}, сервера {servId}");
+
+        foreach (var data in components)
+        {
+            if (data.nmbRack == rackId && data.nmbServ == servId)
+            {
+                if (data.sceneObject == null)
+                    BindSceneObject(data);
+                if (data.sceneObject == null) continue;
+
+                Collider col = data.sceneObject.GetComponent<Collider>();
+                if (col == null) continue;
+
+                // Включаем коллайдеры для ВСЕХ компонентов (и Normal, и HardDrive)
+                col.enabled = true;
+                Debug.Log($"[BrokenComponentManager] Включён коллайдер для {data.componentId}");
             }
         }
     }

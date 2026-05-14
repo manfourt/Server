@@ -7,6 +7,8 @@ public class ServerBoxController : MonoBehaviour
     public int rackId;
 
     private Open door;
+    private CameraViewManager cameraViewManager;
+    private bool isRepairModeActive = false;
 
     private void Awake()
     {
@@ -15,49 +17,52 @@ public class ServerBoxController : MonoBehaviour
 
     private void Start()
     {
-        UpdateViewpointsState();
-        // При старте скрываем внутренние компоненты (дверца закрыта)
+        cameraViewManager = CameraViewManager.Instance;
         SetInternalComponentsVisible(false);
     }
 
     private void Update()
     {
-        UpdateViewpointsState();
+        if (door == null) return;
 
-        // Синхронизируем видимость компонентов с состоянием дверцы
-        bool isOpen = IsDoorOpen();
+        bool isOpen = door.IsOpen;
+
         SetInternalComponentsVisible(isOpen);
-    }
 
-    private void UpdateViewpointsState()
-    {
-        bool isOpen = IsDoorOpen();
-        if (CameraViewManager.Instance != null && CameraViewManager.Instance.IsSpecialViewActive)
+        // Когда дверь открылась - активируем режим ремонта
+        if (isOpen && !isRepairModeActive && cameraViewManager != null && !cameraViewManager.IsRepairModeActive)
         {
-            SetViewpointsActive(false);
-            return;
+            ActivateRepairMode();
         }
-        SetViewpointsActive(isOpen);
+
+        // УБРАЛИ автоматическое закрытие двери при выходе из режима
+        // Теперь дверь закрывается только через кнопку на контроллере
     }
 
-    public bool IsDoorOpen()
+    public void OnDoorOpened()
     {
-        return door != null && door.IsOpen;
+        ActivateRepairMode();
     }
 
-    private void SetViewpointsActive(bool active)
+    public void OnDoorClosed()
     {
-        Transform vpR = transform.Find("ViewPoint_R");
-        Transform vpT = transform.Find("ViewPoint_T");
-        if (vpR != null && vpR.gameObject.activeSelf != active)
-            vpR.gameObject.SetActive(active);
-        if (vpT != null && vpT.gameObject.activeSelf != active)
-            vpT.gameObject.SetActive(active);
+        if (cameraViewManager != null && cameraViewManager.IsRepairModeActive)
+        {
+            cameraViewManager.ExitRepairMode();
+        }
+        isRepairModeActive = false;
     }
 
-    /// <summary>
-    /// Скрывает или показывает внутренние компоненты сервера (кроме HDD).
-    /// </summary>
+    private void ActivateRepairMode()
+    {
+        if (cameraViewManager != null && !cameraViewManager.IsRepairModeActive)
+        {
+            cameraViewManager.EnterRepairMode(rackId, servId);
+            isRepairModeActive = true;
+            Debug.Log($"[ServerBoxController] Режим ремонта активирован для сервера {servId}");
+        }
+    }
+
     private void SetInternalComponentsVisible(bool visible)
     {
         BrokenComponentManager bcm = BrokenComponentManager.Instance;
@@ -65,26 +70,23 @@ public class ServerBoxController : MonoBehaviour
 
         foreach (var comp in bcm.Components)
         {
-            // Только компоненты этого сервера
             if (comp.nmbRack != rackId || comp.nmbServ != servId)
                 continue;
 
-            // Пропускаем HDD — они видны всегда
             if (comp.kind == BrokenComponentManager.ComponentKind.HardDrive)
                 continue;
 
-            // Пропускаем отсутствующие (удалённые) компоненты
             if (!comp.isInScene)
                 continue;
 
             if (comp.sceneObject == null)
                 continue;
 
-            // Включаем/выключаем рендереры
-            MeshRenderer[] renderers = comp.sceneObject.GetComponentsInChildren<MeshRenderer>(true);
-            foreach (MeshRenderer mr in renderers)
+            Renderer[] renderers = comp.sceneObject.GetComponentsInChildren<Renderer>(true);
+            foreach (Renderer r in renderers)
             {
-                mr.enabled = visible;
+                if (r != null)
+                    r.enabled = visible;
             }
         }
     }

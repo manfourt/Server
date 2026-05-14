@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using UnityEngine.XR.Interaction.Toolkit;
 
 public class Open : MonoBehaviour
 {
@@ -7,14 +8,12 @@ public class Open : MonoBehaviour
     [SerializeField] private LayerMask doorLayerMask = ~0;
 
     [Header("Анимация серверного бокса (код)")]
-    [SerializeField] private float slideDistance = 0.6465f; // 0.9805 - 0.334 = 0.6465
+    [SerializeField] private float slideDistance = 0.6465f;
     [SerializeField] private float animationSpeed = 7.5f;
 
     private Animator anim;
-    private Transform player;
     private Outline outlineComponent;
     private CameraViewManager cameraViewManager;
-    private Camera mainCamera;
 
     public bool IsOpen => doorOpen;
     private bool doorOpen = false;
@@ -23,27 +22,22 @@ public class Open : MonoBehaviour
     private static Open currentlyOpenedBox = null;
     private bool isServerBox;
 
-    // Запоминаем исходную позицию
     private Vector3 initialLocalPosition;
     private Vector3 targetLocalPosition;
+    private bool isDisabled = false;
+    private Coroutine currentAnimationCoroutine = null;
 
     private void Start()
     {
         anim = GetComponent<Animator>();
         outlineComponent = GetComponent<Outline>();
         cameraViewManager = CameraViewManager.Instance ?? FindObjectOfType<CameraViewManager>();
-        player = GameObject.FindGameObjectWithTag("Player")?.transform;
-        mainCamera = Camera.main;
 
         isServerBox = GetComponent<ServerBoxController>() != null;
 
-        doorOpen = false;
-
         if (isServerBox)
         {
-            // Запоминаем позицию, которую выставили в редакторе
             initialLocalPosition = transform.localPosition;
-            // Выдвинутая позиция = исходная + смещение по Z (вперёд)
             targetLocalPosition = initialLocalPosition + new Vector3(0, 0, slideDistance);
         }
         else if (anim != null)
@@ -54,56 +48,54 @@ public class Open : MonoBehaviour
         if (outlineComponent != null)
             outlineComponent.enabled = false;
 
-        doorLayerMask = ~LayerMask.GetMask("Viewpoint");
+        if (GetComponent<XRSimpleInteractable>() == null && isServerBox)
+        {
+            var interactable = gameObject.AddComponent<XRSimpleInteractable>();
+            interactable.interactionLayers = -1;
+        }
     }
 
-    private void Update()
+    private void OnEnable()
     {
-        if (player == null)
-            return;
-
-        if (cameraViewManager != null && cameraViewManager.IsSpecialViewActive)
-        {
-            if (outlineComponent != null)
-                outlineComponent.enabled = false;
-            return;
-        }
-
-        if (mainCamera == null)
-            mainCamera = Camera.main;
-
-        if (mainCamera == null)
-            return;
-
-        float distance = Vector3.Distance(transform.position, player.position);
-        bool isLookingAtDoor = false;
-
-        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-
-        if (distance <= openDistance && Physics.Raycast(ray, out RaycastHit hit, openDistance, doorLayerMask))
-        {
-            if (hit.collider != null && hit.collider.GetComponentInParent<Open>() == this)
-            {
-                isLookingAtDoor = true;
-
-                if (outlineComponent != null)
-                    outlineComponent.enabled = true;
-
-                if (Input.GetMouseButtonDown(0))
-                {
-                    ToggleDoor();
-                }
-            }
-        }
-
-        if (!isLookingAtDoor && outlineComponent != null)
-            outlineComponent.enabled = false;
+        isDisabled = false;
     }
 
-    public void ToggleDoor()
+    private void OnDisable()
     {
-        if (isAnimating)
-            return;
+        isDisabled = true;
+
+        if (currentAnimationCoroutine != null)
+        {
+            try { StopCoroutine(currentAnimationCoroutine); }
+            catch { }
+            currentAnimationCoroutine = null;
+        }
+    }
+
+    public void OnHoverEntered()
+    {
+        if (isDisabled || !gameObject.activeInHierarchy) return;
+        if (cameraViewManager != null && cameraViewManager.IsRepairModeActive) return;
+
+        if (outlineComponent != null) outlineComponent.enabled = true;
+    }
+
+    public void OnHoverExited()
+    {
+        if (outlineComponent != null) outlineComponent.enabled = false;
+    }
+
+    public void OnSelectEntered()
+    {
+        if (isDisabled || !gameObject.activeInHierarchy) return;
+        if (cameraViewManager != null && cameraViewManager.IsRepairModeActive) return;
+
+        ToggleDoor();
+    }
+
+    private void ToggleDoor()
+    {
+        if (isAnimating || isDisabled || !gameObject.activeInHierarchy) return;
 
         if (doorOpen)
         {
@@ -115,50 +107,69 @@ public class Open : MonoBehaviour
             {
                 currentlyOpenedBox.CloseDoor();
             }
-
             OpenDoor();
         }
     }
 
     private void OpenDoor()
     {
+        if (isDisabled || !gameObject.activeInHierarchy) return;
+
         doorOpen = true;
 
         if (isServerBox)
         {
-            currentlyOpenedBox = this;
-            StopAllCoroutines();
-            StartCoroutine(AnimateDoor(targetLocalPosition));
-        }
-        else if (anim != null)
-        {
-            anim.SetBool("Open", false);
-        }
+            if (currentlyOpenedBox != null && currentlyOpenedBox != this)
+                currentlyOpenedBox.CloseDoor();
 
-        Debug.Log($"Дверь открыта: {gameObject.name}");
+            currentlyOpenedBox = this;
+            StopCurrentAnimation();
+            StartAnimation(targetLocalPosition);
+
+            ServerBoxController controller = GetComponent<ServerBoxController>();
+            if (controller != null) controller.OnDoorOpened();
+        }
+        else if (anim != null) anim.SetBool("Open", false);
     }
 
-    private void CloseDoor()
+    public void CloseDoor()
     {
+        if (isDisabled) return;
+
         doorOpen = false;
 
         if (isServerBox)
         {
-            if (currentlyOpenedBox == this)
-                currentlyOpenedBox = null;
+            if (currentlyOpenedBox == this) currentlyOpenedBox = null;
+            StopCurrentAnimation();
+            StartAnimation(initialLocalPosition);
 
-            StopAllCoroutines();
-            StartCoroutine(AnimateDoor(initialLocalPosition));
-
-            if (cameraViewManager != null && cameraViewManager.IsSpecialViewActive)
-                cameraViewManager.ExitSpecialView();
+            ServerBoxController controller = GetComponent<ServerBoxController>();
+            if (controller != null) controller.OnDoorClosed();
         }
-        else if (anim != null)
+        else if (anim != null) anim.SetBool("Open", true);
+    }
+
+    private void StopCurrentAnimation()
+    {
+        if (currentAnimationCoroutine != null)
         {
-            anim.SetBool("Open", true);
+            try { StopCoroutine(currentAnimationCoroutine); }
+            catch { }
+            currentAnimationCoroutine = null;
         }
+        isAnimating = false;
+    }
 
-        Debug.Log($"Дверь закрыта: {gameObject.name}");
+    private void StartAnimation(Vector3 targetPos)
+    {
+        if (!gameObject.activeInHierarchy || isDisabled)
+        {
+            transform.localPosition = targetPos;
+            isAnimating = false;
+            return;
+        }
+        currentAnimationCoroutine = StartCoroutine(AnimateDoor(targetPos));
     }
 
     private IEnumerator AnimateDoor(Vector3 targetPos)
@@ -170,27 +181,23 @@ public class Open : MonoBehaviour
 
         while (elapsed < duration)
         {
+            if (!gameObject.activeInHierarchy || isDisabled) break;
             elapsed += Time.deltaTime;
             float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
             transform.localPosition = Vector3.Lerp(startPosition, targetPos, t);
             yield return null;
         }
 
-        transform.localPosition = targetPos;
+        if (gameObject != null && gameObject.activeInHierarchy && !isDisabled)
+            transform.localPosition = targetPos;
+
         isAnimating = false;
+        currentAnimationCoroutine = null;
     }
 
     private void OnDestroy()
     {
         if (isServerBox && currentlyOpenedBox == this)
             currentlyOpenedBox = null;
-    }
-
-    private void OnDisable()
-    {
-        if (doorOpen)
-        {
-            CloseDoor();
-        }
     }
 }

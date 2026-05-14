@@ -47,7 +47,6 @@ public class InventoryManager : MonoBehaviour
             return false;
         }
 
-        // Заменяем текущий предмет (всегда)
         CurrentItem = type;
         UpdateHandUI();
         Debug.Log($"[InventoryManager] Взят компонент: {type}");

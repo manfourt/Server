@@ -1,203 +1,56 @@
 using UnityEngine;
-using UnityEngine.XR.Interaction.Toolkit;
-using Unity.XR.CoreUtils;
 
 public class CameraViewManager : MonoBehaviour
 {
     public static CameraViewManager Instance { get; private set; }
 
-    [Header("XR Origin")]
-    [SerializeField] private XROrigin xrOrigin;
+    private bool isRepairModeActive = false;
+    private int currentRackId = 0;
+    private int currentServId = 0;
 
-    [Header("Move Settings")]
-    [SerializeField] private float moveSpeed = 2f;
-
-    private CharacterController characterController;
-
-    private Transform viewpoint_R;
-    private Transform viewpoint_T;
-
-    private Vector3 originalPosition;
-    private Quaternion originalRotation;
-
-    private Vector3 targetPosition;
-    private Quaternion targetRotation;
-
-    private bool movingToTarget = false;
-
-    private bool isSpecialViewActive;
-
-    private enum ViewType
-    {
-        None,
-        R,
-        T
-    }
-
-    private ViewType currentView = ViewType.None;
-
-    public bool IsSpecialViewActive => isSpecialViewActive;
-    public bool IsViewR => currentView == ViewType.R;
-    public bool IsViewT => currentView == ViewType.T;
-
-    private TeleportationProvider teleportationProvider;
-    private ActionBasedContinuousMoveProvider continuousMoveProvider;
-    private ActionBasedSnapTurnProvider snapTurnProvider;
+    public bool IsSpecialViewActive => isRepairModeActive;
+    public bool IsRepairModeActive => isRepairModeActive;
+    public bool IsViewR => isRepairModeActive;
+    public bool IsViewT => isRepairModeActive;
 
     private void Awake()
     {
-        if (Instance == null)
-            Instance = this;
-        else
-            Destroy(gameObject);
-    }
-
-    private void Start()
-    {
-        if (xrOrigin == null)
-            xrOrigin = FindObjectOfType<XROrigin>();
-
-        if (xrOrigin == null)
-        {
-            Debug.LogError("[CameraViewManager] XR Origin not found!");
-            return;
-        }
-
-        characterController = xrOrigin.GetComponent<CharacterController>();
-
-        teleportationProvider = xrOrigin.GetComponent<TeleportationProvider>();
-        continuousMoveProvider = xrOrigin.GetComponent<ActionBasedContinuousMoveProvider>();
-        snapTurnProvider = xrOrigin.GetComponent<ActionBasedSnapTurnProvider>();
+        if (Instance == null) Instance = this;
+        else Destroy(gameObject);
     }
 
     private void Update()
     {
-        if (movingToTarget)
+        // УБРАЛИ Escape - теперь выход только через закрытие двери или отдельную кнопку
+    }
+
+    public void EnterRepairMode(int rackId, int servId)
+    {
+        if (isRepairModeActive) return;
+
+        currentRackId = rackId;
+        currentServId = servId;
+        isRepairModeActive = true;
+
+        Debug.Log($"[CameraViewManager] ===== РЕЖИМ РЕМОНТА АКТИВИРОВАН ===== для сервера {servId}");
+
+        if (BrokenComponentManager.Instance != null)
         {
-            MovePlayer();
+            BrokenComponentManager.Instance.SetCollidersForRepairMode(rackId, servId);
         }
     }
 
-    private void MovePlayer()
+    public void ExitRepairMode()
     {
-        Vector3 direction = targetPosition - xrOrigin.transform.position;
+        if (!isRepairModeActive) return;
 
-        direction.y = 0f;
+        isRepairModeActive = false;
 
-        float distance = direction.magnitude;
+        Debug.Log("[CameraViewManager] ===== ВЫХОД ИЗ РЕЖИМА РЕМОНТА =====");
 
-        if (distance < 0.05f)
+        if (BrokenComponentManager.Instance != null)
         {
-            movingToTarget = false;
-
-            xrOrigin.transform.position = targetPosition;
-            xrOrigin.transform.rotation = targetRotation;
-
-            return;
+            BrokenComponentManager.Instance.DisableAllComponentColliders();
         }
-
-        Vector3 move = direction.normalized * moveSpeed * Time.deltaTime;
-
-        if (characterController != null)
-        {
-            characterController.Move(move);
-        }
-        else
-        {
-            xrOrigin.transform.position += move;
-        }
-
-        Quaternion targetRot = Quaternion.Euler(
-            0,
-            targetRotation.eulerAngles.y,
-            0
-        );
-
-        xrOrigin.transform.rotation = Quaternion.Slerp(
-            xrOrigin.transform.rotation,
-            targetRot,
-            5f * Time.deltaTime
-        );
-    }
-
-    public void SetView(string viewType, int servId, int rackId)
-    {
-        if (xrOrigin == null)
-            return;
-
-        originalPosition = xrOrigin.transform.position;
-        originalRotation = xrOrigin.transform.rotation;
-
-        if (viewType == "R")
-        {
-            viewpoint_R = GameObject.Find(
-                $"ServerRack_{rackId}/ServerBox_{servId}/ViewPoint_R"
-            )?.transform;
-
-            if (viewpoint_R == null)
-                return;
-
-            currentView = ViewType.R;
-
-            targetPosition = viewpoint_R.position;
-            targetRotation = viewpoint_R.rotation;
-        }
-        else if (viewType == "T")
-        {
-            viewpoint_T = GameObject.Find(
-                $"ServerRack_{rackId}/ServerBox_{servId}/ViewPoint_T"
-            )?.transform;
-
-            if (viewpoint_T == null)
-                return;
-
-            currentView = ViewType.T;
-
-            targetPosition = viewpoint_T.position;
-            targetRotation = viewpoint_T.rotation;
-        }
-        else
-        {
-            return;
-        }
-
-        SetLocomotionActive(false);
-
-        movingToTarget = true;
-
-        isSpecialViewActive = true;
-
-        Debug.Log($"[CameraViewManager] View {viewType} activated");
-    }
-
-    public void ExitSpecialView()
-    {
-        if (!isSpecialViewActive)
-            return;
-
-        targetPosition = originalPosition;
-        targetRotation = originalRotation;
-
-        movingToTarget = true;
-
-        currentView = ViewType.None;
-
-        isSpecialViewActive = false;
-
-        SetLocomotionActive(true);
-
-        Debug.Log("[CameraViewManager] Exit special view");
-    }
-
-    private void SetLocomotionActive(bool active)
-    {
-        if (teleportationProvider != null)
-            teleportationProvider.enabled = active;
-
-        if (continuousMoveProvider != null)
-            continuousMoveProvider.enabled = active;
-
-        if (snapTurnProvider != null)
-            snapTurnProvider.enabled = active;
     }
 }

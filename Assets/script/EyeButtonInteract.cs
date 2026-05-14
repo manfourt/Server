@@ -1,36 +1,36 @@
-using UnityEngine;
+//using UnityEngine;
 
-public class EyeButtonInteract : MonoBehaviour
-{
-    [SerializeField] private string viewType = "R";
+//public class EyeButtonInteract : MonoBehaviour
+//{
+//    [SerializeField] private string viewType = "R";
 
-    private int servId;
-    private int rackId;
+//    private int servId;
+//    private int rackId;
 
-    private void Start()
-    {
-        var box = GetComponentInParent<ServerBoxController>();
+//    private void Start()
+//    {
+//        var box = GetComponentInParent<ServerBoxController>();
 
-        if (box == null)
-        {
-            Debug.LogError("[EyeButtonInteract] ServerBoxController not found");
-            return;
-        }
+//        if (box == null)
+//        {
+//            Debug.LogError("[EyeButtonInteract] ServerBoxController not found");
+//            return;
+//        }
 
-        servId = box.servId;
-        rackId = box.rackId;
-    }
+//        servId = box.servId;
+//        rackId = box.rackId;
+//    }
 
-    public void EnterView()
-    {
-        Debug.Log($"ENTER VIEW {viewType}");
+//    public void EnterView()
+//    {
+//        Debug.Log($"ENTER VIEW {viewType}");
 
-        if (CameraViewManager.Instance == null)
-        {
-            Debug.LogError("CameraViewManager == null");
-            return;
-        }
+//        if (CameraViewManager.Instance == null)
+//        {
+//            Debug.LogError("CameraViewManager == null");
+//            return;
+//        }
 
-        CameraViewManager.Instance.SetView(viewType, servId, rackId);
-    }
-}
+//        CameraViewManager.Instance.SetView(viewType, servId, rackId);
+//    }
+//}

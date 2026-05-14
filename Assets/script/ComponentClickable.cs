@@ -2,116 +2,252 @@ using UnityEngine;
 using System.Linq;
 using UnityEngine.XR.Interaction.Toolkit;
 
+[RequireComponent(typeof(Collider))]
 [RequireComponent(typeof(Outline))]
 public class ComponentClickable : MonoBehaviour
 {
+    public string GetComponentId() => componentId;
     [SerializeField] private string componentId;
     [SerializeField] private BrokenComponentManager.ComponentKind kind;
-    [SerializeField] private bool isWarehouseItem = false;
 
     private Outline outline;
     private CameraViewManager cameraViewManager;
     private BrokenComponentManager brokenComponentManager;
     private InventoryManager inventoryManager;
 
+    [Header("Склад")]
+    [SerializeField] private bool isWarehouseItem = false;
+
+    private bool isHovered = false;
+    private float lastPickupTime = 0f;
+    private float pickupCooldown = 0.5f; // Защита от многократного взятия
+
     public void Initialize(string id, BrokenComponentManager.ComponentKind componentKind)
     {
         componentId = id;
         kind = componentKind;
+        ApplyLayer();
+    }
+
+    private void Awake()
+    {
+        outline = GetComponent<Outline>();
     }
 
     private void Start()
     {
-        outline = GetComponent<Outline>();
-        if (outline != null) outline.enabled = false;
-
-        cameraViewManager = CameraViewManager.Instance;
-        brokenComponentManager = BrokenComponentManager.Instance;
+        cameraViewManager = CameraViewManager.Instance ?? FindObjectOfType<CameraViewManager>();
+        brokenComponentManager = BrokenComponentManager.Instance ?? FindObjectOfType<BrokenComponentManager>();
         inventoryManager = InventoryManager.Instance;
-    }
 
-    // Вызывается, когда луч контроллера наводится на объект
-    public void OnHoverEntered()
-    {
-        if (CanInteract())
+        if (outline != null)
+            outline.enabled = false;
+
+        ApplyLayer();
+
+        if (GetComponent<XRSimpleInteractable>() == null)
         {
-            SetHighlight(true);
+            var interactable = gameObject.AddComponent<XRSimpleInteractable>();
+            interactable.interactionLayers = -1;
+            interactable.selectMode = InteractableSelectMode.Single;
         }
+
+        Debug.Log($"[ComponentClickable] Инициализирован: {gameObject.name}, isWarehouseItem={isWarehouseItem}");
     }
 
-    // Вызывается, когда луч контроллера уходит с объекта
-    public void OnHoverExited()
+    private void ApplyLayer()
     {
-        SetHighlight(false);
-    }
-
-    // Вызывается при "клике" (нажатии триггера)
-    public void OnSelect()
-    {
-        if (!CanInteract()) return;
-
-        if (isWarehouseItem)
+        if (kind == BrokenComponentManager.ComponentKind.HardDrive)
         {
-            inventoryManager.PickUp(gameObject);
+            int layer = LayerMask.NameToLayer("BrokenHardDrive");
+            if (layer >= 0) gameObject.layer = layer;
         }
         else
         {
-            var componentData = brokenComponentManager.Components.FirstOrDefault(c => c.componentId == componentId);
-            if (componentData == null) return;
+            int layer = LayerMask.NameToLayer("BrokenCompnent");
+            if (layer >= 0) gameObject.layer = layer;
+        }
+    }
 
-            // Если в руке ничего нет, а компонент на месте и сломан
-            if (!inventoryManager.HasItem && componentData.isInScene && componentData.isBroken)
+    public void OnHoverEntered()
+    {
+        bool canInteract = CanInteract();
+
+        if (!canInteract) return;
+
+        isHovered = true;
+        SetHighlight(true);
+    }
+
+    public void OnHoverExited()
+    {
+        isHovered = false;
+        SetHighlight(false);
+    }
+
+    public void OnSelectEntered()
+    {
+        bool canInteract = CanInteract();
+
+        if (!canInteract)
+        {
+            Debug.Log($"[ComponentClickable] Нельзя взаимодействовать с {gameObject.name}");
+            return;
+        }
+
+        if (isWarehouseItem)
+        {
+            // ===== СКЛАД: берём компонент (НЕ ИСЧЕЗАЕТ, просто добавляем в инвентарь) =====
+            if (inventoryManager != null)
             {
-                if (brokenComponentManager.TryHideComponent(componentId, transform.position))
+                // Защита от многократного быстрого нажатия
+                if (Time.time - lastPickupTime < pickupCooldown)
+                {
+                    Debug.Log($"[ComponentClickable] Слишком быстро, подождите...");
+                    return;
+                }
+
+                lastPickupTime = Time.time;
+
+                // Проверяем, есть ли место в инвентаре (если лимит 1 предмет)
+                if (!inventoryManager.HasItem)
                 {
                     inventoryManager.PickUp(gameObject);
+                    // Объект НЕ исчезает! gameObject.SetActive(false) - НЕ ВЫЗЫВАЕМ
+                    Debug.Log($"[ComponentClickable] Взят компонент со склада: {gameObject.name} (объект остался на месте)");
+
+                    // Визуальный фидбек - кратковременная подсветка
+                    StartCoroutine(PickupFeedback());
+                }
+                else
+                {
+                    Debug.Log($"[ComponentClickable] В руке уже есть компонент: {inventoryManager.CurrentItem}. Сначала поставьте его или очистите руку.");
                 }
             }
-            // Если в руке есть нужный компонент и слот пуст
-            else if (inventoryManager.HasItem && !componentData.isInScene)
+        }
+        else
+        {
+            // ===== КОМПОНЕНТ В СЕРВЕРЕ =====
+            var componentData = brokenComponentManager?.Components.FirstOrDefault(c => c.componentId == componentId);
+            if (componentData == null)
             {
-                // Проверяем, совпадает ли тип предмета в руке с типом этого слота
-                string handItemTag = InventoryManager.TagToItemType(inventoryManager.CurrentItem.ToString()).ToString();
+                Debug.LogWarning($"[ComponentClickable] Нет данных для {componentId}");
+                return;
+            }
+
+            bool hasItem = inventoryManager != null && inventoryManager.HasItem;
+
+            Debug.Log($"[ComponentClickable] Серверный компонент: id={componentId}, hasItem={hasItem}, isInScene={componentData.isInScene}");
+
+            // СЛУЧАЙ 1: СНИМАЕМ ЛЮБОЙ КОМПОНЕНТ (НЕ запоминаем в инвентарь)
+            if (!hasItem && componentData.isInScene)
+            {
+                Vector3 hitPoint = GetHitPointFromController();
+
+                if (brokenComponentManager.TryHideComponent(componentId, hitPoint))
+                {
+                    Debug.Log($"[ComponentClickable] Снят компонент: {componentId} (удалён)");
+                }
+            }
+            // СЛУЧАЙ 2: СТАВИМ НОВЫЙ КОМПОНЕНТ из инвентаря
+            else if (hasItem && !componentData.isInScene)
+            {
+                string handItemTag = inventoryManager.CurrentItem.ToString();
+                Debug.Log($"[ComponentClickable] Пытаемся поставить {handItemTag} в слот {componentData.sceneTag}");
+
                 if (handItemTag == componentData.sceneTag)
                 {
                     if (brokenComponentManager.TryRestoreComponent(componentId))
                     {
                         inventoryManager.ClearHand();
+                        Debug.Log($"[ComponentClickable] Установлен компонент: {componentId}");
                     }
                 }
+                else
+                {
+                    Debug.Log($"[ComponentClickable] Неподходящий компонент! Нужен: {componentData.sceneTag}, в руке: {handItemTag}");
+                }
+            }
+            else if (hasItem && componentData.isInScene)
+            {
+                Debug.Log($"[ComponentClickable] В слоте уже есть компонент. Сначала снимите его (рука должна быть пуста).");
+            }
+            else if (!hasItem && !componentData.isInScene)
+            {
+                Debug.Log($"[ComponentClickable] Слот пуст, но рука пуста. Сначала возьмите компонент со склада.");
             }
         }
 
         SetHighlight(false);
     }
 
-    private void SetHighlight(bool value)
+    private System.Collections.IEnumerator PickupFeedback()
     {
-        if (outline != null)
+        // Визуальный фидбек при взятии со склада
+        Color originalColor = Color.white;
+        Renderer renderer = GetComponent<Renderer>();
+        if (renderer != null)
         {
-            outline.enabled = value;
+            originalColor = renderer.material.color;
+            renderer.material.color = Color.green;
+            yield return new WaitForSeconds(0.2f);
+            renderer.material.color = originalColor;
         }
     }
 
-    // Проверка, можно ли сейчас взаимодействовать с этим объектом
-    private bool CanInteract()
+    private Vector3 GetHitPointFromController()
     {
-        if (cameraViewManager == null) cameraViewManager = CameraViewManager.Instance;
-        if (inventoryManager == null) inventoryManager = InventoryManager.Instance;
+        var rayInteractors = FindObjectsOfType<XRRayInteractor>();
 
-        // Если это предмет на складе
-        if (isWarehouseItem)
+        foreach (var rayInteractor in rayInteractors)
         {
-            // Взаимодействовать можно только в режиме свободного перемещения
-            return !cameraViewManager.IsSpecialViewActive;
+            if (rayInteractor.interactablesSelected.Count > 0)
+            {
+                if (rayInteractor.TryGetCurrent3DRaycastHit(out RaycastHit hit))
+                {
+                    return hit.point;
+                }
+            }
         }
 
-        // Если это компонент в сервере
-        if (!cameraViewManager.IsSpecialViewActive) return false;
+        return transform.position;
+    }
 
-        bool isCorrectView = (kind == BrokenComponentManager.ComponentKind.HardDrive && cameraViewManager.IsViewR) ||
-                             (kind == BrokenComponentManager.ComponentKind.Normal && cameraViewManager.IsViewT);
+    private void SetHighlight(bool value)
+    {
+        if (outline != null)
+            outline.enabled = value;
+    }
 
-        return isCorrectView;
+    private bool CanInteract()
+    {
+        if (cameraViewManager == null)
+        {
+            cameraViewManager = CameraViewManager.Instance ?? FindObjectOfType<CameraViewManager>();
+            if (cameraViewManager == null) return false;
+        }
+
+        // Складские предметы - доступны ВСЕГДА (и в режиме ремонта, и вне)
+        if (isWarehouseItem)
+        {
+            return true; // Всегда можно взять со склада
+        }
+
+        // Компоненты в сервере - только в режиме ремонта
+        return cameraViewManager.IsRepairModeActive;
+    }
+
+    private void OnEnable()
+    {
+        if (outline != null)
+            outline.enabled = false;
+        isHovered = false;
+    }
+
+    private void OnDisable()
+    {
+        if (outline != null)
+            outline.enabled = false;
+        isHovered = false;
     }
 }

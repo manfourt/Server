@@ -6,7 +6,7 @@ public class PlayerInteraction : MonoBehaviour
     [SerializeField] LayerMask interactableLayer;
     [SerializeField] Camera playerCamera;
 
-    CameraViewManager cameraViewManager;
+    private CameraViewManager cameraViewManager;
 
     void Start()
     {
@@ -18,12 +18,39 @@ public class PlayerInteraction : MonoBehaviour
     void Update()
     {
         if (Time.timeScale == 0f) return;
-        if (cameraViewManager != null && cameraViewManager.IsSpecialViewActive) return;
+        if (cameraViewManager != null && cameraViewManager.IsRepairModeActive) return;
 
-        // Q Ц очистить руку
+        // ќчистка по клавише Q (клавиатура)
         if (Input.GetKeyDown(KeyCode.Q))
         {
-            InventoryManager.Instance?.ClearHand();
+            ClearInventory();
+        }
+
+        // ќчистка по кнопке Menu на контроллере
+        if (Input.GetButtonDown("Cancel"))
+        {
+            ClearInventory();
+        }
+
+        // ќчистка по кнопке A/X на контроллере (можно заменить)
+        if (Input.GetButtonDown("Submit"))
+        {
+            ClearInventory();
+        }
+
+        // ќчистка по кнопке B/Y на контроллере
+        if (Input.GetButtonDown("Fire2"))
+        {
+            ClearInventory();
+        }
+    }
+
+    private void ClearInventory()
+    {
+        if (InventoryManager.Instance != null)
+        {
+            InventoryManager.Instance.ClearHand();
+            Debug.Log("[PlayerInteraction] »нвентарь очищен");
         }
     }
 }
