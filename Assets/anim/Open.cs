@@ -93,7 +93,7 @@ public class Open : MonoBehaviour
         ToggleDoor();
     }
 
-    private void ToggleDoor()
+    public void ToggleDoor()
     {
         if (isAnimating || isDisabled || !gameObject.activeInHierarchy) return;
 
