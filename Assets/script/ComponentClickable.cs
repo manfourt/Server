@@ -45,11 +45,21 @@ public class ComponentClickable : MonoBehaviour
 
         ApplyLayer();
 
-        if (GetComponent<XRSimpleInteractable>() == null)
+        // Проверяем наличие XRSimpleInteractable
+        var interactable = GetComponent<XRSimpleInteractable>();
+        if (interactable == null)
         {
-            var interactable = gameObject.AddComponent<XRSimpleInteractable>();
+            interactable = gameObject.AddComponent<XRSimpleInteractable>();
             interactable.interactionLayers = -1;
             interactable.selectMode = InteractableSelectMode.Single;
+        }
+
+        // ФИКС: Обязательно динамически подписываемся на XR-события
+        if (interactable != null)
+        {
+            interactable.hoverEntered.AddListener((args) => OnHoverEntered());
+            interactable.hoverExited.AddListener((args) => OnHoverExited());
+            interactable.selectEntered.AddListener((args) => OnSelectEntered());
         }
 
         Debug.Log($"[ComponentClickable] Инициализирован: {gameObject.name}, isWarehouseItem={isWarehouseItem}");
@@ -72,7 +82,6 @@ public class ComponentClickable : MonoBehaviour
     public void OnHoverEntered()
     {
         bool canInteract = CanInteract();
-
         if (!canInteract) return;
 
         isHovered = true;
@@ -97,10 +106,9 @@ public class ComponentClickable : MonoBehaviour
 
         if (isWarehouseItem)
         {
-            // ===== СКЛАД: берём компонент (НЕ ИСЧЕЗАЕТ, просто добавляем в инвентарь) =====
+            // ===== СКЛАД: берём компонент =====
             if (inventoryManager != null)
             {
-                // Защита от многократного быстрого нажатия
                 if (Time.time - lastPickupTime < pickupCooldown)
                 {
                     Debug.Log($"[ComponentClickable] Слишком быстро, подождите...");
@@ -109,19 +117,15 @@ public class ComponentClickable : MonoBehaviour
 
                 lastPickupTime = Time.time;
 
-                // Проверяем, есть ли место в инвентаре (если лимит 1 предмет)
                 if (!inventoryManager.HasItem)
                 {
                     inventoryManager.PickUp(gameObject);
-                    // Объект НЕ исчезает! gameObject.SetActive(false) - НЕ ВЫЗЫВАЕМ
-                    Debug.Log($"[ComponentClickable] Взят компонент со склада: {gameObject.name} (объект остался на месте)");
-
-                    // Визуальный фидбек - кратковременная подсветка
+                    Debug.Log($"[ComponentClickable] Взят компонент со склада: {gameObject.name}");
                     StartCoroutine(PickupFeedback());
                 }
                 else
                 {
-                    Debug.Log($"[ComponentClickable] В руке уже есть компонент: {inventoryManager.CurrentItem}. Сначала поставьте его или очистите руку.");
+                    Debug.Log($"[ComponentClickable] В руке уже есть компонент: {inventoryManager.CurrentItem}.");
                 }
             }
         }
@@ -136,20 +140,16 @@ public class ComponentClickable : MonoBehaviour
             }
 
             bool hasItem = inventoryManager != null && inventoryManager.HasItem;
-
             Debug.Log($"[ComponentClickable] Серверный компонент: id={componentId}, hasItem={hasItem}, isInScene={componentData.isInScene}");
 
-            // СЛУЧАЙ 1: СНИМАЕМ ЛЮБОЙ КОМПОНЕНТ (НЕ запоминаем в инвентарь)
+            // СЛУЧАЙ 1: СНИМАЕМ КОМПОНЕНТ (С микро-задержкой от телепортации)
             if (!hasItem && componentData.isInScene)
             {
                 Vector3 hitPoint = GetHitPointFromController();
-
-                if (brokenComponentManager.TryHideComponent(componentId, hitPoint))
-                {
-                    Debug.Log($"[ComponentClickable] Снят компонент: {componentId} (удалён)");
-                }
+                // ФИКС: Запускаем корутину безопасного удаления вместо мгновенного скрытия
+                StartCoroutine(DelayedHideComponent(componentId, hitPoint));
             }
-            // СЛУЧАЙ 2: СТАВИМ НОВЫЙ КОМПОНЕНТ из инвентаря
+            // СЛУЧАЙ 2: СТАВИМ НОВЫЙ КОМПОНЕНТ
             else if (hasItem && !componentData.isInScene)
             {
                 string handItemTag = inventoryManager.CurrentItem.ToString();
@@ -165,25 +165,40 @@ public class ComponentClickable : MonoBehaviour
                 }
                 else
                 {
-                    Debug.Log($"[ComponentClickable] Неподходящий компонент! Нужен: {componentData.sceneTag}, в руке: {handItemTag}");
+                    Debug.Log($"[ComponentClickable] Неподходящий компонент! Нужен: {componentData.sceneTag}");
                 }
             }
             else if (hasItem && componentData.isInScene)
             {
-                Debug.Log($"[ComponentClickable] В слоте уже есть компонент. Сначала снимите его (рука должна быть пуста).");
+                Debug.Log($"[ComponentClickable] В слоте уже есть компонент. Сначала снимите его.");
             }
             else if (!hasItem && !componentData.isInScene)
             {
-                Debug.Log($"[ComponentClickable] Слот пуст, но рука пуста. Сначала возьмите компонент со склада.");
+                Debug.Log($"[ComponentClickable] Слот пуст. Возьмите деталь со склада.");
             }
         }
 
         SetHighlight(false);
     }
 
+    // ФИКС: Корутина, которая ждет долю секунды, чтобы XR-интеракт успел завершиться и луч не «пробивал» пол
+    private System.Collections.IEnumerator DelayedHideComponent(string id, Vector3 hitPoint)
+    {
+        // Выключаем коллайдер прямо сейчас, чтобы предотвратить спам-клики, 
+        // но даем кадру физики завершить обработку луча контроллера
+        Collider col = GetComponent<Collider>();
+        if (col != null) col.enabled = false;
+
+        yield return new WaitForSeconds(0.15f); // Короткая пауза (150 миллисекунд)
+
+        if (brokenComponentManager != null && brokenComponentManager.TryHideComponent(id, hitPoint))
+        {
+            Debug.Log($"[ComponentClickable] Снят компонент: {id} (удалён)");
+        }
+    }
+
     private System.Collections.IEnumerator PickupFeedback()
     {
-        // Визуальный фидбек при взятии со склада
         Color originalColor = Color.white;
         Renderer renderer = GetComponent<Renderer>();
         if (renderer != null)
@@ -227,14 +242,29 @@ public class ComponentClickable : MonoBehaviour
             if (cameraViewManager == null) return false;
         }
 
-        // Складские предметы - доступны ВСЕГДА (и в режиме ремонта, и вне)
+        // Складские предметы — доступны ВСЕГДА (их можно брать в любой момент)
         if (isWarehouseItem)
         {
-            return true; // Всегда можно взять со склада
+            return true;
         }
 
-        // Компоненты в сервере - только в режиме ремонта
-        return cameraViewManager.IsRepairModeActive;
+        // Если вообще никакой режим ремонта не активен — взаимодействовать нельзя
+        if (!cameraViewManager.IsRepairModeActive) return false;
+
+        // СТРОГАЯ ПРОВЕРКА: принадлежит ли этот компонент именно ОТКРЫТОМУ сейчас серверу
+        if (brokenComponentManager != null && brokenComponentManager.Components != null)
+        {
+            // Ищем данные этого компонента в общем списке менеджера
+            var componentData = brokenComponentManager.Components.FirstOrDefault(c => c.componentId == componentId);
+            if (componentData != null)
+            {
+                // Взаимодействие разрешено, ТОЛЬКО если номер стойки и сервера совпадает с текущим активным
+                return cameraViewManager.CurrentRackId == componentData.nmbRack &&
+                       cameraViewManager.CurrentServId == componentData.nmbServ;
+            }
+        }
+
+        return false;
     }
 
     private void OnEnable()

@@ -48,10 +48,35 @@ public class Open : MonoBehaviour
         if (outlineComponent != null)
             outlineComponent.enabled = false;
 
-        if (GetComponent<XRSimpleInteractable>() == null && isServerBox)
+        // ЗАЩИТА: Удаляем ошибочный компонент Grab, если он случайно остался в Инспекторе
+        var grabable = GetComponent<XRGrabInteractable>();
+        if (grabable != null)
         {
-            var interactable = gameObject.AddComponent<XRSimpleInteractable>();
+            Debug.LogWarning($"[Open] Внимание! С объекта {gameObject.name} удален XRGrabInteractable, так как сервер нельзя хватать руками!");
+            Destroy(grabable);
+        }
+
+        // НАСТРОЙКА XRSimpleInteractable
+        var interactable = GetComponent<XRSimpleInteractable>();
+        if (interactable == null && isServerBox)
+        {
+            interactable = gameObject.AddComponent<XRSimpleInteractable>();
             interactable.interactionLayers = -1;
+        }
+
+        if (interactable != null)
+        {
+            interactable.colliders.Clear();
+
+            Collider mainCollider = GetComponent<Collider>();
+            if (mainCollider != null)
+            {
+                interactable.colliders.Add(mainCollider);
+            }
+
+            interactable.hoverEntered.AddListener((args) => OnHoverEntered());
+            interactable.hoverExited.AddListener((args) => OnHoverExited());
+            interactable.selectEntered.AddListener((args) => OnSelectEntered());
         }
     }
 
@@ -75,7 +100,12 @@ public class Open : MonoBehaviour
     public void OnHoverEntered()
     {
         if (isDisabled || !gameObject.activeInHierarchy) return;
-        if (cameraViewManager != null && cameraViewManager.IsRepairModeActive) return;
+
+        // ИСПРАВЛЕНИЕ: Если режим ремонта активен, разрешаем подсветку ТОЛЬКО если этот ящик сейчас открыт
+        if (cameraViewManager != null && cameraViewManager.IsRepairModeActive)
+        {
+            if (!doorOpen) return; // Закрытые ящики во время ремонта не подсвечиваем
+        }
 
         if (outlineComponent != null) outlineComponent.enabled = true;
     }
@@ -88,7 +118,12 @@ public class Open : MonoBehaviour
     public void OnSelectEntered()
     {
         if (isDisabled || !gameObject.activeInHierarchy) return;
-        if (cameraViewManager != null && cameraViewManager.IsRepairModeActive) return;
+
+        // ИСПРАВЛЕНИЕ: Если режим ремонта активен, разрешаем клик ТОЛЬКО для того ящика, который открыт
+        if (cameraViewManager != null && cameraViewManager.IsRepairModeActive)
+        {
+            if (!doorOpen) return; // Не даем открыть другие ящики, пока этот не закроют
+        }
 
         ToggleDoor();
     }

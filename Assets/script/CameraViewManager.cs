@@ -1,12 +1,21 @@
 using UnityEngine;
 
+using UnityEngine;
+
 public class CameraViewManager : MonoBehaviour
 {
     public static CameraViewManager Instance { get; private set; }
 
+    [Header("VR Телепортация")]
+    [SerializeField] private GameObject teleportInteractor;
+
     private bool isRepairModeActive = false;
     private int currentRackId = 0;
     private int currentServId = 0;
+
+    // ===== ДОБАВЬТЕ ЭТИ ДВЕ СТРОЧКИ ПЕРЕД СУЩЕСТВУЮЩИМИ СВОЙСТВАМИ =====
+    public int CurrentRackId => currentRackId;
+    public int CurrentServId => currentServId;
 
     public bool IsSpecialViewActive => isRepairModeActive;
     public bool IsRepairModeActive => isRepairModeActive;
@@ -34,6 +43,12 @@ public class CameraViewManager : MonoBehaviour
 
         Debug.Log($"[CameraViewManager] ===== РЕЖИМ РЕМОНТА АКТИВИРОВАН ===== для сервера {servId}");
 
+        // ФИКС: Отключаем луч телепортации при входе в режим ремонта
+        if (teleportInteractor != null)
+        {
+            teleportInteractor.SetActive(false);
+        }
+
         if (BrokenComponentManager.Instance != null)
         {
             BrokenComponentManager.Instance.SetCollidersForRepairMode(rackId, servId);
@@ -47,6 +62,12 @@ public class CameraViewManager : MonoBehaviour
         isRepairModeActive = false;
 
         Debug.Log("[CameraViewManager] ===== ВЫХОД ИЗ РЕЖИМА РЕМОНТА =====");
+
+        // ФИКС: Включаем луч телепортации обратно при выходе
+        if (teleportInteractor != null)
+        {
+            teleportInteractor.SetActive(true);
+        }
 
         if (BrokenComponentManager.Instance != null)
         {

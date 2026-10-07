@@ -18,7 +18,15 @@ public class ServerBoxController : MonoBehaviour
     private void Start()
     {
         cameraViewManager = CameraViewManager.Instance;
+
+        // Скрываем визуальную часть деталей
         SetInternalComponentsVisible(false);
+
+        // ФИКС: Отключаем физические коллайдеры всех деталей на старте игры
+        if (BrokenComponentManager.Instance != null)
+        {
+            BrokenComponentManager.Instance.DisableAllComponentColliders();
+        }
     }
 
     private void Update()
